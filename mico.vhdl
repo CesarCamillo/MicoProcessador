@@ -169,15 +169,19 @@ begin
 
 	ula_output <= result(31 downto 0);
 	
-	result <= 	(X(31 downto 0) + Y(31 downto 0)) when fun = "0001" else 		        --	ADD
-					(X(31 downto 0) AND Y(31 downto 0)) when fun = "0100" else      --	AND
-					(X(31 downto 0) OR Y(31 downto 0)) when fun = "0101" else 	--	OR
-					('0' & not(X(31 downto 0)))  when fun = "0111" else		--	NOT
-					'0' & Y when fun = "0000" else  				--	LDA
-					("00" & X(31 downto 1)) when fun = "1001" else   		--	SHR
-					('0' & X(31 downto 0) & '0') when fun = "1000" else		--	SHL
-					(X(31 downto 0) * Y(31 downto 0)) when fun = "0011" else 	--	MUL
-					"000000000";
+	result <= 	(X(31 downto 0) + Y(31 downto 0)) 	when fun = "0001" else 	--ADD
+			(X(31 downto 0) - Y(31 downto 0))	when fun = "0010" else	--SUB
+	     		(X(31 downto 0) * Y(31 downto 0)) 	when fun = "0011" else 	--MUL	
+	     		(X(31 downto 0) AND Y(31 downto 0)) 	when fun = "0100" else  --AND
+			(X(31 downto 0) OR Y(31 downto 0)) 	when fun = "0101" else 	--OR
+	     		(X(31 downto 0) XOR Y(31 downto 0))	when fun = "0110" else  --XOR
+			('0' & not(X(31 downto 0)))  		when fun = "0111" else	--NOT --rever isto
+			('0' & X(31 downto 0) & '0') 		when fun = "1000" else	--SHL
+	     		("00" & X(31 downto 1)) 		when fun = "1001" else  --SHR
+	     							when fun = "1010" else  --ORI
+	     		X(31 downto 0) + Y(31 downto 0))	when fun = "1011" else  --ADDI
+	     		('0' & Y) 				when fun = "0000" else  --LDA --rever utilidade
+			"000000000";
   
   
   
