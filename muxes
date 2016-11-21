@@ -1,0 +1,93 @@
+- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux2(a,b,s,z)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity mux2 is
+  port(a,b : in  bit;                   -- entradas de dados
+       s   : in  bit;                   -- entrada de selecao
+       z   : out bit);                  -- saida
+end mux2;
+
+architecture estrut of mux2 is 
+
+  -- declara componentes que sao instanciados
+  component inv is
+    port(A : in bit; S : out bit);
+  end component inv;
+
+  component nand2 is
+    port(A,B : in bit; S : out bit);
+  end component nand2;
+
+  signal r, p, q : bit;              -- sinais internos
+  
+begin  -- compare ligacoes dos sinais com diagrama das portas logicas
+  
+  Ui:  inv   port map(s, r);
+  Ua0: nand2 port map(a, r, p);
+  Ua1: nand2 port map(b, s, q);
+  Uor: nand2 port map(p, q, z);
+    
+end architecture estrut;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux4(a,b,c,d,s0,s1,z)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity mux4 is
+  port(a,b,c,d : in  bit;               -- quatro entradas de dados
+       s0,s1   : in  bit;               -- dois sinais de selecao
+       z       : out bit);              -- saida
+end mux4;
+
+architecture estrut of mux4 is 
+
+  component mux2 is
+    port(A,B : in  bit; S : in  bit; Z : out bit);
+  end component mux2;
+
+  signal p,q : bit;                     -- sinais internos
+begin
+  Um1: mux2 port map(a, b, s0, p);
+  Um2: mux2 port map(c, d, s0, q);
+  Umf: mux2 port map(p, q, s1, z);
+  -- implemente usando tres mux2
+
+end architecture estrut;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux8vet(entr(7downto0),sel(2downto0),z)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity mux8vet is
+  port(entr : in  reg8;
+       sel  : in  reg3;
+       z    : out bit);
+end mux8vet;
+
+architecture estrut of mux8vet is 
+
+  component mux2 is
+    port(A,B : in  bit; S : in  bit; Z : out bit);
+  end component mux2;
+
+  component mux4 is
+    port(A,B,C,D : in  bit; S0,S1 : in  bit; Z : out bit);
+  end component mux4;
+
+  signal x, y : bit;
+  
+begin
+  Um1: mux4 port map(entr(0), entr(1), entr(2), entr(3), sel(0), sel(1), x);
+  Um2: mux4 port map(entr(4), entr(5), entr(6), entr(7), sel(0), sel(1), y);
+  Umf: mux2 port map(x, y, sel(2), z);
+  -- implemente usando dois mux4 e um mux2
+
+end architecture estrut;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
