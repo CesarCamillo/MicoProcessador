@@ -1,0 +1,96 @@
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- demux2(a,s,z,w)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity demux2 is
+  port(A   : in  bit;
+       S   : in  bit;
+       Z,W : out bit);
+end demux2;
+
+architecture estrut of demux2 is
+    -- declara componentes que sao instanciados
+  component inv is
+    generic (prop : time; cont : time);
+    port(A : in bit; S : out bit);
+  end component inv;
+
+  component nand2 is
+    generic (prop : time; cont : time);
+    port(A,B : in bit; S : out bit);
+  end component nand2;
+
+  component nor2 is
+    generic (prop : time; cont : time);
+    port(A,B : in bit; S : out bit);
+  end component nor2;
+
+  signal r, x1, x2 : bit;              -- sinais internos
+  
+begin
+  Ui: inv generic map (t_inv, t_cont) port map (s, r);
+  Ua1: nand2 generic map (t_nand2, t_cont) port map (a, r, x1);
+  Ua2: nand2 generic map (t_nand2, t_cont) port map (a, s, x2);
+  Ui2: inv generic map (t_inv, t_cont) port map (x1, z);
+  Ui3: inv generic map (t_inv, t_cont) port map (x2, w);
+  
+end architecture estrut;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- demux4(a,s0,s1,x,y,z,w)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity demux4 is
+  port(A       : in  bit;
+       S0,S1   : in  bit;
+       X,Y,Z,W : out bit);
+end demux4;
+
+architecture estrut of demux4 is
+
+  component demux2 is
+    port (A : in bit; S : in bit; Z,W : out bit);
+  end component demux2;
+
+  signal p, q : bit;
+  
+begin
+  Ud1: demux2 port map (a, s1, p, q);
+  Ud2: demux2 port map (p, s0, x, y);
+  Ud3: demux2 port map (q, s0, z, w);
+end architecture estrut;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- demux8(a,s0,s1,s2,p,q,r,s,t,u,v,w)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity demux8 is
+  port(A               : in  bit;
+       s0,s1,s2        : in  bit;
+       P,Q,R,S,T,U,V,W : out bit);
+end demux8;
+
+architecture estrut of demux8 is
+
+    component demux2 is
+      port (A : in bit; S : in bit; Z,W : out bit);
+    end component demux2;
+    
+    component demux4 is
+      port (A : in bit; S0,S1 : in bit; X,Y,Z,W : out bit);
+    end component demux4;
+
+    signal x, y : bit;
+    
+begin
+  Ud2: demux2 port map (a, s2, x, y);
+  Ud41: demux4 port map (x, s1, s0, p, q, r, s);
+  Ud42: demux4 port map (y, s1, s0, t, u, v, w);
+end architecture estrut;
