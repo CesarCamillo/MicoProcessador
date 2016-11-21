@@ -22,7 +22,6 @@ begin
     S <= (not A) after prop;
 end architecture comport;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- porta AND de 2 entradas
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -39,6 +38,7 @@ begin
     S <= A and B after prop;
 end and2;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- porta OR de 2 entradas
@@ -210,31 +210,31 @@ end functional;
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- contador de 32 bits, reset=0 assincrono, load=1, enable=1 sincrono
+-- contador de 16 bits, reset=0 assincrono, load=1, enable=1 sincrono
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library ieee; use ieee.std_logic_1164.all; use ieee.numeric_std.all;
 use work.p_WIRES.all;
 
-entity count32up is
+entity count16up is
   port(rel, rst, ld, en: in  bit;
-        D:               in  reg32;
-        Q:               out reg32);
-end count32up;
+        D:               in  reg16;
+        Q:               out reg16);
+end count16up;
 
-architecture funcional of count32up is
-  signal count: reg32;
+architecture funcional of count16up is
+  signal count: reg16;
 begin
 
   process(rel, rst, ld)
     variable num : integer;
   begin
     if rst = '0' then
-      count <=x"00000000";
+      count <=x"0000";
     elsif ld = '1' then
       count <= D;
     elsif en = '1' and rising_edge(rel) then
-      num := BV2INT(count) + 1;
-      count <= INT2BV32(num);
+      num := BV2INT16(count) + 1;
+      count <= INT2BV16(num);
     end if;
   end process;
 
@@ -440,7 +440,7 @@ end estrutural;
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
 
-entity adderCadeia is
+entity adderCadeia is 
   port(inpA, inpB : in reg32;
        outC : out reg32;
        vem  : in bit;
@@ -600,37 +600,37 @@ temp<=inp;
 
 zero <= '0';
 
-Umux1:  mux2 port map(temp(0),  temp(1), cont,result(1));
-Umux2:  mux2 port map(temp(1),  temp(2), cont,result(2));
-Umux3:  mux2 port map(temp(2),  temp(3), cont,result(3));
-Umux4:  mux2 port map(temp(3),  temp(4), cont,result(4));
-Umux5:  mux2 port map(temp(4),  temp(5), cont,result(5));
-Umux6:  mux2 port map(temp(5),  temp(6), cont,result(6));
-Umux7:  mux2 port map(temp(6),  temp(7), cont,result(7));
-Umux8:  mux2 port map(temp(7),  temp(8), cont,result(8));
-Umux9:  mux2 port map(temp(8),  temp(9), cont,result(9));
-Umux10: mux2 port map(temp(9),  temp(10),cont,result(10));
-Umux11: mux2 port map(temp(10), temp(11),cont,result(11));
-Umux12: mux2 port map(temp(11), temp(12),cont,result(12));
-Umux13: mux2 port map(temp(12), temp(13),cont,result(13));
-Umux14: mux2 port map(temp(13), temp(14),cont,result(14));
-Umux15: mux2 port map(temp(14), temp(15),cont,result(15));
-Umux16: mux2 port map(temp(15), temp(16),cont,result(16));
-Umux17: mux2 port map(temp(16), temp(17),cont,result(17));
-Umux18: mux2 port map(temp(17), temp(18),cont,result(18));
-Umux19: mux2 port map(temp(18), temp(19),cont,result(19));
-Umux20: mux2 port map(temp(19), temp(20),cont,result(20));
-Umux21: mux2 port map(temp(20), temp(21),cont,result(21));
-Umux22: mux2 port map(temp(21), temp(22),cont,result(22));
-Umux23: mux2 port map(temp(22), temp(23),cont,result(23));
-Umux24: mux2 port map(temp(23), temp(24),cont,result(24));
-Umux25: mux2 port map(temp(24), temp(25),cont,result(25));
-Umux26: mux2 port map(temp(25), temp(26),cont,result(26));
-Umux27: mux2 port map(temp(26), temp(27),cont,result(27));
-Umux28: mux2 port map(temp(27), temp(28),cont,result(28));
-Umux29: mux2 port map(temp(28), temp(29),cont,result(29));
-Umux30: mux2 port map(temp(29), temp(30),cont,result(30));
-Umux31: mux2 port map(temp(30), temp(31),cont,result(31));
+Umux1:  mux2 port map(temp(0),  temp(1), cont,result(0));
+Umux2:  mux2 port map(temp(1),  temp(2), cont,result(1));
+Umux3:  mux2 port map(temp(2),  temp(3), cont,result(2));
+Umux4:  mux2 port map(temp(3),  temp(4), cont,result(3));
+Umux5:  mux2 port map(temp(4),  temp(5), cont,result(4));
+Umux6:  mux2 port map(temp(5),  temp(6), cont,result(5));
+Umux7:  mux2 port map(temp(6),  temp(7), cont,result(6));
+Umux8:  mux2 port map(temp(7),  temp(8), cont,result(7));
+Umux9:  mux2 port map(temp(8),  temp(9), cont,result(8));
+Umux10: mux2 port map(temp(9),  temp(10),cont,result(9));
+Umux11: mux2 port map(temp(10), temp(11),cont,result(10));
+Umux12: mux2 port map(temp(11), temp(12),cont,result(11));
+Umux13: mux2 port map(temp(12), temp(13),cont,result(12));
+Umux14: mux2 port map(temp(13), temp(14),cont,result(13));
+Umux15: mux2 port map(temp(14), temp(15),cont,result(14));
+Umux16: mux2 port map(temp(15), temp(16),cont,result(15));
+Umux17: mux2 port map(temp(16), temp(17),cont,result(16));
+Umux18: mux2 port map(temp(17), temp(18),cont,result(17));
+Umux19: mux2 port map(temp(18), temp(19),cont,result(18));
+Umux20: mux2 port map(temp(19), temp(20),cont,result(19));
+Umux21: mux2 port map(temp(20), temp(21),cont,result(20));
+Umux22: mux2 port map(temp(21), temp(22),cont,result(21));
+Umux23: mux2 port map(temp(22), temp(23),cont,result(22));
+Umux24: mux2 port map(temp(23), temp(24),cont,result(23));
+Umux25: mux2 port map(temp(24), temp(25),cont,result(24));
+Umux26: mux2 port map(temp(25), temp(26),cont,result(25));
+Umux27: mux2 port map(temp(26), temp(27),cont,result(26));
+Umux28: mux2 port map(temp(27), temp(28),cont,result(27));
+Umux29: mux2 port map(temp(28), temp(29),cont,result(28));
+Umux30: mux2 port map(temp(29), temp(30),cont,result(29));
+Umux31: mux2 port map(temp(30), temp(31),cont,result(30));
 Umux32: mux2 port map(temp(31), zero    ,cont,result(31));
 
 end architecture estrutural;
@@ -645,7 +645,7 @@ library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
 
 entity shift_leftN is
   port(inpn : in reg32;
-	contn : in reg32;
+	contn : in reg5;
        outpn : out reg32
        );
 end shift_leftN;
@@ -653,7 +653,7 @@ end shift_leftN;
 architecture estrutural of shift_leftN is 
 
 component shift_left1 is
-  port(inp : in reg32;
+  port(inp1 : in reg32;
 	cont : in bit;
        outp : out reg32
        );
@@ -710,7 +710,7 @@ library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
 
 entity shift_rightN is
   port(inpn : in reg32;
-	contn : in reg32;
+	contn : in reg5;
        outpn : out reg32
        );
 end shift_rightN;
@@ -786,9 +786,9 @@ end mult_1;
 architecture estrutural of mult_1 is 
 
 component shift_leftN is
-  port(inp : in reg32;
-	cont : in reg32;
-       outp : out reg32
+  port(inpn : in reg32;
+	contn : in reg5;
+       outpn : out reg32
        );
 end component shift_leftN;
 
@@ -818,15 +818,15 @@ temp(31 downto 0)<=inp(31 downto 0);
 zero(31 downto 0)<="00000000000000000000000000000000";
 
 
-Uor1: or2 port map( ent1(1),ent2(1), sai0(1));
-Uor2: or2 port map( ent1(2),ent2(2), sai0(2));
-Uor3: or2 port map( ent1(3),ent2(3), sai0(3));
-Uor4: or2 port map( ent1(4),ent2(4), sai0(4));
-Uor5: or2 port map( ent1(5),ent2(5), sai0(5));
-Uor6: or2 port map( ent1(6),ent2(6), sai0(6));
-Uor7: or2 port map( ent1(7),ent2(7), sai0(7));
-Uor8: or2 port map( ent1(8),ent2(8), sai0(8));
-Uor9: or2 port map( ent1(9),ent2(9), sai0(9));
+Uor1:  or2 port map( ent1(1), ent2(1),  sai0(1));
+Uor2:  or2 port map( ent1(2), ent2(2),  sai0(2));
+Uor3:  or2 port map( ent1(3), ent2(3),  sai0(3));
+Uor4:  or2 port map( ent1(4), ent2(4),  sai0(4));
+Uor5:  or2 port map( ent1(5), ent2(5),  sai0(5));
+Uor6:  or2 port map( ent1(6), ent2(6),  sai0(6));
+Uor7:  or2 port map( ent1(7), ent2(7),  sai0(7));
+Uor8:  or2 port map( ent1(8), ent2(8),  sai0(8));
+Uor9:  or2 port map( ent1(9), ent2(9),  sai0(9));
 Uor10: or2 port map( ent1(10),ent2(10), sai0(10));
 Uor11: or2 port map( ent1(11),ent2(11), sai0(11));
 Uor12: or2 port map( ent1(12),ent2(12), sai0(12));
@@ -853,7 +853,7 @@ Uor31: or2 port map( ent1(31),ent2(31), sai0(31));
 
 
 Umux: mux32_2 port map(temp,zero, fator, saidamux);
-Ushif: shift_leftN port map(saidamux, desloc, result);
+Ushif: shift_leftN port map(saidamux, desloc(4 downto 0), result);
 
 end estrutural; 
 
@@ -891,7 +891,6 @@ signal s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16
 signal s17, s18, s19, s20, s21, s22, s23, s24, s25, s26, s27, s28, s29, s30, s31, s32 : reg32;
 signal a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16 : reg32;
 signal a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31 : reg32;
-signal vazio: bit;
 
 begin
 
@@ -928,38 +927,38 @@ Umult29: mult_1 port map( inp1,inp2(29),x"0000001d", s30);
 Umult30: mult_1 port map( inp1,inp2(30),x"0000001e", s31);
 Umult31: mult_1 port map( inp1,inp2(31),x"0000001f", s32);
 
-Uadd0:  adderCadeia port map(s0, s1, a0, '0', vazio);
-Uadd1:  adderCadeia port map(a0, s2, a1, '0', vazio);
-Uadd2:  adderCadeia port map(a1, s3, a2, '0', vazio);
-Uadd3:  adderCadeia port map(a2, s4, a3, '0', vazio);
-Uadd4:  adderCadeia port map(a3, s5, a4, '0', vazio);
-Uadd5:  adderCadeia port map(a4, s6, a5, '0', vazio);
-Uadd6:  adderCadeia port map(a5, s7, a6, '0', vazio);
-Uadd7:  adderCadeia port map(a6, s8, a7, '0', vazio);
-Uadd8:  adderCadeia port map(a7, s9, a8, '0', vazio);
-Uadd9:  adderCadeia port map(a8, s10,a9, '0', vazio);
-Uadd10: adderCadeia port map(a9, s11,a10,'0', vazio);
-Uadd11: adderCadeia port map(a10,s12,a11,'0', vazio);
-Uadd12: adderCadeia port map(a11,s13,a12,'0', vazio);
-Uadd13: adderCadeia port map(a12,s14,a13,'0', vazio);
-Uadd14: adderCadeia port map(a13,s15,a14,'0', vazio);
-Uadd15: adderCadeia port map(a14,s16,a15,'0', vazio);
-Uadd16: adderCadeia port map(a15,s17,a16,'0', vazio);
-Uadd17: adderCadeia port map(a16,s18,a17,'0', vazio);
-Uadd18: adderCadeia port map(a17,s19,a18,'0', vazio);
-Uadd19: adderCadeia port map(a18,s20,a19,'0', vazio);
-Uadd20: adderCadeia port map(a19,s21,a20,'0', vazio);
-Uadd21: adderCadeia port map(a20,s22,a21,'0', vazio);
-Uadd22: adderCadeia port map(a21,s23,a22,'0', vazio);
-Uadd23: adderCadeia port map(a22,s24,a23,'0', vazio);
-Uadd24: adderCadeia port map(a23,s25,a24,'0', vazio);
-Uadd25: adderCadeia port map(a24,s26,a25,'0', vazio);
-Uadd26: adderCadeia port map(a25,s27,a26,'0', vazio);
-Uadd27: adderCadeia port map(a26,s28,a27,'0', vazio);
-Uadd28: adderCadeia port map(a27,s29,a28,'0', vazio);
-Uadd29: adderCadeia port map(a28,s30,a29,'0', vazio);
-Uadd30: adderCadeia port map(a29,s31,a30,'0', vazio);
-Uadd31: adderCadeia port map(a30,s32,outp,'0', vazio);
+Uadd0:  adderCadeia port map(s0, s1, a0, '0', open);
+Uadd1:  adderCadeia port map(a0, s2, a1, '0', open);
+Uadd2:  adderCadeia port map(a1, s3, a2, '0', open);
+Uadd3:  adderCadeia port map(a2, s4, a3, '0', open);
+Uadd4:  adderCadeia port map(a3, s5, a4, '0', open);
+Uadd5:  adderCadeia port map(a4, s6, a5, '0', open);
+Uadd6:  adderCadeia port map(a5, s7, a6, '0', open);
+Uadd7:  adderCadeia port map(a6, s8, a7, '0', open);
+Uadd8:  adderCadeia port map(a7, s9, a8, '0', open);
+Uadd9:  adderCadeia port map(a8, s10,a9, '0', open);
+Uadd10: adderCadeia port map(a9, s11,a10,'0', open);
+Uadd11: adderCadeia port map(a10,s12,a11,'0', open);
+Uadd12: adderCadeia port map(a11,s13,a12,'0', open);
+Uadd13: adderCadeia port map(a12,s14,a13,'0', open);
+Uadd14: adderCadeia port map(a13,s15,a14,'0', open);
+Uadd15: adderCadeia port map(a14,s16,a15,'0', open);
+Uadd16: adderCadeia port map(a15,s17,a16,'0', open);
+Uadd17: adderCadeia port map(a16,s18,a17,'0', open);
+Uadd18: adderCadeia port map(a17,s19,a18,'0', open);
+Uadd19: adderCadeia port map(a18,s20,a19,'0', open);
+Uadd20: adderCadeia port map(a19,s21,a20,'0', open);
+Uadd21: adderCadeia port map(a20,s22,a21,'0', open);
+Uadd22: adderCadeia port map(a21,s23,a22,'0', open);
+Uadd23: adderCadeia port map(a22,s24,a23,'0', open);
+Uadd24: adderCadeia port map(a23,s25,a24,'0', open);
+Uadd25: adderCadeia port map(a24,s26,a25,'0', open);
+Uadd26: adderCadeia port map(a25,s27,a26,'0', open);
+Uadd27: adderCadeia port map(a26,s28,a27,'0', open);
+Uadd28: adderCadeia port map(a27,s29,a28,'0', open);
+Uadd29: adderCadeia port map(a28,s30,a29,'0', open);
+Uadd30: adderCadeia port map(a29,s31,a30,'0', open);
+Uadd31: adderCadeia port map(a30,s32,outp,'0',open);
 
 
 end estrutural;
@@ -1037,3 +1036,119 @@ Uor31: or2 port map( ent1(31),ent2(31), sai0(31));
 end estrutural;
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux2_16(a,b,s,z)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity mux2_16 is
+  port(a,b : in  reg32;                   -- entradas de dados
+       s   : in  bit;                   -- entrada de selecao
+       z   : out reg32);                  -- saida
+end mux2_16;
+
+architecture estrut of mux2_16 is 
+  
+begin  -- compare ligacoes dos sinais com diagrama das portas logicas
+  
+z<= a when s ='0' else
+    b when s='1';
+    
+end architecture estrut;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux4(a,b,c,d,s0,s1,z)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity mux4 is
+  port(a,b,c,d : in  reg32;               -- quatro entradas de dados
+       s0,s1   : in  bit;               -- dois sinais de selecao
+       z       : out reg32);              -- saida
+end mux4;
+
+architecture estrut of mux4 is 
+
+  component mux2_16 is
+    port(A,B : in  reg32; S : in  bit; Z : out reg32);
+  end component mux2_16;
+
+  signal p,q : reg32;                     -- sinais internos
+begin
+  Um1: mux2_16 port map(a, b, s0, p);
+  Um2: mux2_16 port map(c, d, s0, q);
+  Umf: mux2_16 port map(p, q, s1, z);
+  -- implemente usando tres mux2
+
+end architecture estrut;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux8vet(entr(7downto0),sel(2downto0),z)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity mux8vet is
+  port(entr0,entr1,entr2,entr3,entr4,entr5,entr6,entr7: in  reg32;
+       sel  : in  reg3;
+       z    : out reg32);
+end mux8vet;
+
+architecture estrut of mux8vet is 
+
+  component mux2_16 is
+    port(A,B : in  reg32; S : in  bit; Z : out reg32);
+  end component mux2_16;
+
+  component mux4 is
+    port(A,B,C,D : in  reg32; S0,S1 : in  bit; Z : out reg32);
+  end component mux4;
+
+  signal x, y : reg32;
+  
+begin
+  Um1: mux4 port map(entr0, entr1, entr2, entr3, sel(0), sel(1), x);
+  Um2: mux4 port map(entr4, entr5, entr6, entr7, sel(0), sel(1), y);
+  Umf: mux2_16 port map(x, y, sel(2), z);
+  -- implemente usando dois mux4 e um mux2
+
+end architecture estrut;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux16vet(entr(7downto0),sel(2downto0),z)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity mux16vet is
+  port(entr0,entr1,entr2,entr3,entr4,entr5,entr6,entr7,entr8,entr9,entr10,entr11,entr12,entr13,entr14,entr15 : in  reg32;
+       sel  : in  reg4;
+       z    : out reg32);
+end mux16vet;
+
+architecture estrut of mux16vet is 
+
+  component mux2_16 is
+    port(A,B : in  reg32; S : in  bit; Z : out reg32);
+  end component mux2_16;
+
+component mux8vet is
+  port(entr0,entr1,entr2,entr3,entr4,entr5,entr6,entr7 : in  reg32; sel  : in  reg3; z    : out reg32);
+end component mux8vet;
+
+  signal x, y : reg32;
+  
+begin
+  Um1: mux8vet port map(entr0, entr1, entr2, entr3,entr4, entr5, entr6, entr7, sel(2 downto 0), x);
+  Um2: mux8vet port map(entr8, entr9, entr10, entr11,entr12, entr13, entr14, entr15, sel(2 downto 0), y);
+  Umf: mux2_16 port map(x, y, sel(3), z);
+
+
+end architecture estrut;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
