@@ -77,6 +77,30 @@ architecture functional of mico is
        z   : out reg32);                  
   end component mux32_2;
 
+  component adderCadeia is		-- em aux
+  port(inpA, inpB : in reg32;
+       outC : out reg32;
+       vem  : in bit;
+       vai  : out bit
+       );
+  end component adderCadeia; 
+
+  component extender is			--neste arquivo
+  port(a : in reg16;
+	sel: in bit;
+	b: out reg32);
+  end component extender;
+
+  component branch_sel is		-- neste arquivo
+    port(alpha, beta, extend, proxi: in reg32;
+       branch: out reg32);
+  end component branch_sel;
+
+  component mux6_2 is
+    port(a,b : in  reg6;                   -- neste arquivo
+       s   : in  bit;                     
+       z   : out reg6);                  
+  end component mux6_2;
 
   type t_control_type is record
     extZero  : bit;       -- estende com zero=1, com sinal=0
@@ -105,22 +129,24 @@ architecture functional of mico is
     ('1','1', '0', '0','1'),            -- ORI
     ('0','1', '0', '0','1'),            -- ADDI
     ('0','0', '1', '0','0'),            -- SHOW
-    ('0','0', '0', '1','0'),            -- JUMP
-    ('0','0', '0', '1','0'),            -- BRANCH
+    ('1','0', '0', '1','0'),            -- JUMP
+    ('1','0', '0', '1','0'),            -- BRANCH
     ('0','0', '0', '0','0'));           -- HALT
 
   signal extZero, selBeta, wr_display, selNxtIP, wr_reg : bit;
 
-  signal instr, A, B, C,Z, beta, extended : reg32;
+  signal instr, A, B, C,Z, beta, extended, entradaadder, saidaadder, saidabranch : reg32;
   signal this  : t_control_type;
-  signal const, ip : reg16;
+  signal const,ip: reg16;
   signal opcode : reg4;
   signal i_opcode : natural range 0 to 15;
-  
+  signal lixo: bit;
 begin  -- functional
 
-  -- memoria de programa contem somente 64 palavrassubtype reg5  is bit_vector(4 
+  -- memoria de programa contem somente 64 palavrassubtype reg6  is bit_vector(4 
   U_mem_prog: mem_prog port map(ip(5 downto 0), instr);
+  
+  const<=instr(15 downto 0);
 
   opcode <= instr(31 downto 28);
   i_opcode <= BV2INT4(opcode);          -- indice do vetor DEVE ser inteiro
@@ -134,16 +160,21 @@ begin  -- functional
   wr_reg     <= this.wr_reg;
 
   
-
-
+  U_extender_IP: extender port map(ip,'1', entradaadder);
+  U_extender: extender port map(const,selBeta,extended);
   
   U_regs: R port map(clk,wr_reg,instr(27 downto 24),instr(23 downto 20),instr(19 downto 16),A,B,C);
 
-  U_mux32_2: mux32_2 port map(B,b,selBeta,Z);
+  U_mux32_2: mux32_2 port map(B,extended,selBeta,Z);
   
   U_ULA: ULA port map(opcode,A,Z,C);
 
+  U_adder_IP: adderCadeia port map(entradaadder,x"00000001",saidaadder,'0',lixo);
+  U_branch_sel: branch_sel port map(A,B,extended,saidaadder,saidabranch);
   
+  U_mux6_2: mux6_2 port map(saidaadder(5 downto 0),saidabranch(5 downto 0),selNxtIP,ip(5 downto 0));
+
+
   -- nao altere esta linha
   U_display: display port map (rst, clk, wr_display, A);
   
@@ -199,7 +230,7 @@ component ori_32 is
 end component ori_32;
 
 
-   signal terra : bit;
+   signal terra1, terra2, terra3 : bit;
    signal result1,result2,result3,result4,result5,result6,result7,result8,result9,result10,result11 : reg32;
    signal X, Y : reg32;
    signal controle_shift : reg5;
@@ -210,13 +241,13 @@ begin
 	X <=  alfa;
 	Y <=  beta;
 
-	 Uadd1:		adderCadeia     port map(X,Y,result1,'0',terra);     --ADD 
-	 Uadd2:		adderCadeia     port map(X,Y,result2,'1',terra);     --SUB 
+	 Uadd1:		adderCadeia     port map(X,Y,result1,'0',terra1);     --ADD 
+	 Uadd2:		adderCadeia     port map(X,Y,result2,'1',terra2);     --SUB 
 	 Umult1:    	mult_32 	port map(X,Y,result3); 		    --MUL 
 	 Ushif1:	shift_leftN     port map(X,controle_shift,result4);  --SHL 
 	 Ushif2:     	shift_rightN    port map(X,controle_shift,result5);  --SHR 
 	 Uori1:     	ori_32          port map(X,Y,result6);		    --ORI 
-     	 Uadd3:         adderCadeia     port map(X,Y,result7,'0',terra);	    --ADDI
+     	 Uadd3:         adderCadeia     port map(X,Y,result7,'0',terra3);	    --ADDI
 	 Uand:     	result8<=(X(31 downto 0) AND Y(31 downto 0));        --AND
 	 Uor:		result9<=(X(31 downto 0) OR Y(31 downto 0)); 	    --OR
 	 Uxor:  	result10<=(X(31 downto 0) XOR Y(31 downto 0));	    --XOR
@@ -454,104 +485,6 @@ end functional;
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- MICO X
--- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-library IEEE; use IEEE.std_logic_1164.all;
-use work.p_wires.all;
-
-entity mico is
-  port (rst,clk : in    bit);
-end mico;
-
-architecture functional of mico is
-
-  component display is                  -- neste arquivo
-    port (rst,clk : in bit;
-          enable  : in bit;
-          data    : in reg32);
-  end component display;
-
-  component mem_prog is                 -- no arquivo mem.vhd
-    port (ender : in  reg6;
-          instr : out reg32);
-  end component mem_prog;
-
-  component ULA is                      -- neste arquivo
-    port (fun : in reg4;
-          alfa,beta : in  reg32;
-          gama      : out reg32);
-  end component ULA;
- 
-  component R is                        -- neste arquivo
-    port (clk         : in  bit;
-          wr_en       : in  bit;
-          r_a,r_b,r_c : in  reg4;
-          A,B         : out reg32;
-          C           : in  reg32);
-  end component R;
-
-  component mux32_2 is			-- neste arquivo
-  port(a,b : in  reg32;                   
-       s   : in  bit;                     
-       z   : out reg32);                  
-  end component mux32_2;
-
-
-  type t_control_type is record
-    extZero  : bit;       -- estende com zero=1, com sinal=0
-    selBeta  : bit;       -- seleciona fonte para entrada B da ULA
-    wr_display: bit;      -- atualiza display=1
-    selNxtIP : bit;       -- seleciona fonte do incremento do IP
-    wr_reg   : bit;       -- atualiza registrador: R(c) <= C
-  end record;
-
-  type t_control_mem is array (0 to 15) of t_control_type;
-
-  -- preencha esta tabela com os sinais de controle adequados
-  -- a tabela eh indexada com o opcode da instrucao
-  constant ctrl_table : t_control_mem := (
-  --extZ sBeta wrD sIP wrR
-    ('0','0', '0', '0','0'),            -- NOP
-    ('0','0', '0', '0','1'),            -- ADD
-    ('0','0', '0', '0','1'),            -- SUB
-    ('0','0', '0', '0','1'),            -- MUL
-    ('0','0', '0', '0','1'),            -- AND
-    ('0','0', '0', '0','1'),            -- OR
-    ('0','0', '0', '0','1'),            -- XOR
-    ('0','0', '0', '0','1'),            -- NOT
-    ('1','0', '0', '0','1'),            -- SLL
-    ('1','0', '0', '0','1'),            -- SRL
-    ('0','1', '0', '0','1'),            -- ORI
-    ('0','1', '0', '0','1'),            -- ADDI
-    ('0','0', '1', '0','0'),            -- SHOW
-    ('0','0', '0', '1','0'),            -- JUMP
-    ('0','0', '0', '1','0'),            -- BRANCH
-    ('0','0', '0', '1','0'));           -- HALT
-
-  signal extZero, selBeta, wr_display, selNxtIP, wr_reg : bit;
-
-  signal instr, A, B, C, beta, extended : reg32;
-  signal this  : t_control_type;
-  signal const, ip : reg16;
-  signal opcode : reg4;
-  signal i_opcode : natural range 0 to 15;
-  
-begin  -- functional
-
-  -- memoria de programa contem somente 64 palavras
-  U_mem_prog: mem_prog port map(ip(5 downto 0), instr);
-
-  opcode <= instr(31 downto 28);
-  i_opcode <= BV2INT4(opcode);          -- indice do vetor DEVE ser inteiro
-  
-  this <= ctrl_table(i_opcode);         -- sinais de controle
-
-  extZero    <= this.extZero;
-
---seletor entre R e constante
-
-end functional;
--- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- mux32_2(a,b,s,z)
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
@@ -581,55 +514,136 @@ begin
     
 end behaviour;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- controle do ip
--- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux6_2(a,b,s,z)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
 
-entity control_ip is
-  port(instr : in reg4;
-       atual : in reg6;
-       r_a, r_b : in reg4;
-       clk : in bit;
-       ender : out reg6);
-end control_ip;
+entity mux6_2 is
+  port(a,b : in  reg6;                   -- entradas de dados
+       s   : in  bit;                     -- entrada de selecao
+       z   : out reg6);                  -- saida
+end mux6_2;
 
-architecture behaviour of control_ip is
- component R is
-  port (clk         : in  bit;
-        wr_en       : in  bit;          
-        r_a,r_b,r_c : in  reg4;
-        A,B         : out reg32;
-        C           : in  reg32);
-end component R;
+architecture behaviour of mux6_2 is 
+
   
-variable proximo, jump : reg6;
-signal instruct : reg4;
-signal vai : reg6;
-signal alpha, beta : reg32;
-signal clock : bit;
+  signal result : reg6;
+  signal R,P : reg6 ; 
+  
+begin  
+	R <= ('0' & a(4 downto 0));
+	P <= ('0' & b(4 downto 0));
+
+	z <=  result(5 downto 0);
+	
+	result <=	R(5 downto 0) when s = '0' else
+			P(5 downto 0) when s = '1' else
+			"000000";
+
+    
+end behaviour;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- extensor
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
+
+entity extender is
+  port(a : in reg16;
+	sel: in bit;
+	b: out reg32);
+end extender;
+
+
+architecture behaviour of extender is
 
 begin
-  clock <= clk;
-  Reg1: R port map(clock, '0', 
-  proximo := atual+1;
-  jump := xxx;
-  instruct <= instr;
-  
-  P1: process (instruct) is
-  begin
-    M1: case instruct is
-      when x"d" => vai <= jump;
-      when x"e" => if alpha = beta then
-                     vai <= jump;
-                   else
-                     vai <= proximo;
-                   end if;
-      when others => vai <= proximo;                           
-    end case M1;
-  end process;
+	P1: process (sel) is
+	begin
+	M0: case sel is
+	  when '0' => b(31 downto 16)<= x"0000";
+	  when others =>
+		b(16)<=a(15);
+		b(17)<=a(15);
+		b(18)<=a(15);
+		b(19)<=a(15);
+		b(20)<=a(15);
+		b(21)<=a(15);
+		b(22)<=a(15);
+		b(23)<=a(15);
+		b(24)<=a(15);
+		b(25)<=a(15);
+		b(26)<=a(15);
+		b(27)<=a(15);
+		b(28)<=a(15);
+		b(29)<=a(15);
+		b(30)<=a(15);
+		b(31)<=a(15);
+	end case M0;
+        end process;
+	b(15 downto 0)<= a;
 
-  ender <= vai;
-                     
-end behaviour;        
-    
+end behaviour;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- seleciona branch
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
+
+entity branch_sel is
+ port(alpha, beta, extend, proxi: in reg32;
+       branch: out reg32);
+end branch_sel;
+
+architecture funcional of branch_sel is
+
+begin
+
+branch <= extend when alpha = beta else
+	  proxi;
+  
+end;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
