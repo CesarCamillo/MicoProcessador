@@ -1,0 +1,112 @@
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- UFPR, BCC, ci210 2016-2 trabalho semestral, autor: Roberto Hexsel, 07out
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+use work.p_wires.all;
+
+entity mem_prog is
+  port (ender : in  reg6;
+        instr : out reg32);
+
+  type t_prog_mem is array (0 to 63) of reg32;
+
+  -- memoria de programa contem somente 64 palavras
+  constant program : t_prog_mem := (
+    x"00000000", -- nop                  0x00
+
+    x"b0010001", -- addi r1,r0,1         0x01   r1 <- 1
+    x"c1000000", -- display r1           0x02
+
+    x"b0020002", -- addi r2,r0,2         0x03   r2 <- 2
+    x"c2000000", -- display r2           0x04
+
+    x"11230000", -- add r3,r2,r1         0x05   r3 <- 1+2
+    x"c3000000", -- display r3           0x06
+
+    x"82340000", -- sll r4, r2, r3       0x07   r4 <- r2 << r3
+    x"c4000000", -- display r5           0x08
+    x"94250000", -- srl r5, r4, r2       0x09   r5 <- r4 >> r2
+    x"c5000000", -- display r5           0x0a
+
+    x"00000000", --                      0x0b
+    
+    x"b001000c", --      r1 <= 12        0x0c
+    x"c1000000", --      display r1      0x0d
+    x"b0020001", --      r2 <= 1         0x0e
+    x"b0030001", --      r3 <= 1         0x0f
+    x"e1000014", -- tst: r1 = r0 ? fim   0x10
+    x"31220000", --      r2 <= r1*r2     0x11
+    x"b101ffff", --      r1 <= r1 - r3   0x12
+    x"d0000010", --      jump tst        0x13
+    x"c2000000", -- fim: display r2      0x14
+
+    x"00000000", --                      0x15
+
+    x"a00f4444", -- ori r15, r0, 0x4444  0x16  r15 <- 0x4444 
+    x"4f2e0000", -- and r14, r2, r15     0x176  r14 <- r2 AND 0x4444
+    x"ce000000", -- display  r14         0x18
+
+    x"a0080011", -- ori r8, r0, 17       0x19  r8 <- 17
+    x"8f890000", -- sll r9, r15, r8      0x1a  r9 <- 0x4444 << 17
+    x"592d0000", -- or r13, r2, r9       0x1b  r13 <- r2 OR 0x8888.0000
+    x"cd000000", -- display  r14         0x1c
+    
+    x"f0000000", --      halt            0x1d
+
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000");
+
+  function BV2INT6(S: reg6) return integer is
+    variable result: integer;
+  begin
+    -- if S(5) = '1' then result := -63; else result := 0; end if;
+    for i in S'range loop
+      result := result * 2;
+      if S(i) = '1' then
+        result := result + 1;
+      end if;
+    end loop;
+    return result;
+  end BV2INT6;
+  
+end mem_prog;
+
+-- nao altere esta arquitetura
+architecture tabela of mem_prog is
+begin  -- tabela
+
+  instr <= program( BV2INT6(ender) );
+
+end tabela;
