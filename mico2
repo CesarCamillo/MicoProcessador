@@ -151,7 +151,7 @@ begin  -- functional
 
   -- memoria de programa contem somente 64 palavrassubtype reg6  is bit_vector(4 
   U_mem_prog: mem_prog port map(ip(5 downto 0), instr);
-  ip_at <= ip;
+  ipatual <= ip;
   const<=instr(15 downto 0);
 
   opcode <= instr(31 downto 28);
