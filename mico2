@@ -96,10 +96,10 @@ architecture functional of mico is
 
   component ip_control is
       port(opcode : in reg4;
-           ipatual : in reg6;
-           jump : in reg6;
+           ipatual : in reg16;
+           jump : in reg16;
            alpha, beta : in reg32;
-           prox_ip : out reg6)
+           prox_ip : out reg16);
   end component ip_control;
   
   type t_control_type is record
@@ -532,10 +532,11 @@ end behavioral;
 
 entity ip_control is
 port(opcode : in reg4;
-     ipatual : in reg6;
-     jump : in reg6;
+     ipatual : in reg16;
+     jump : in reg16;
      alpha, beta : in reg32;
-     prox_ip : out reg6) end ip_control;
+     prox_ip : out reg16);
+end ip_control;
 
 architecture controle of ip_control is
   
@@ -545,7 +546,7 @@ architecture controle of ip_control is
           Q:               out reg16);
   end component count16up;
   
-  signal cont, branch : reg6;
+  signal cont, branch : reg16;
   signal sel : boolean;
   
   begin
@@ -553,6 +554,7 @@ architecture controle of ip_control is
     sel <= (alpha = beta);
     
     P1: process (opcode,sel) is
+	begin
       M0: case sel is
         when true => branch <= jump;
         when false => branch <= count;
@@ -564,3 +566,5 @@ architecture controle of ip_control is
         when others => prox_ip <= cont;
       end case M1;
     end process;
+
+end controle;
