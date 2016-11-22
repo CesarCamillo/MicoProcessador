@@ -529,7 +529,7 @@ end behavioral;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- ip_control
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+LIBRARY ieee;USE ieee.std_logic_1164.all;use work.p_wires.all;
 entity ip_control is
 port(opcode : in reg4;
      ipatual : in reg16;
