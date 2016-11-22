@@ -1,0 +1,581 @@
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- UFPR, BCC, ci210 2016-2 trabalho semestral, autor: Roberto Hexsel, 07out
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- display: exibe inteiro na saida padrao do simulador
+--          NAO ALTERE ESTE MODELO
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library IEEE; use std.textio.all;
+use work.p_wires.all;
+
+entity display is
+  port (rst,clk : in bit;
+        enable  : in bit;
+        data    : in reg32);
+end display;
+
+architecture functional of display is
+  file output : text open write_mode is "STD_OUTPUT";
+begin  -- functional
+
+  U_WRITE_OUT: process(clk)
+    variable msg : line;
+  begin
+    if falling_edge(clk) and enable = '1' then
+      write ( msg, string'(BV32HEX(data)) );
+      writeline( output, msg );
+    end if;
+  end process U_WRITE_OUT;
+
+end functional;
+-- ++ display ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- MICO X
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library IEEE; use IEEE.std_logic_1164.all;
+use work.p_wires.all;
+
+entity mico is
+  port (rst,clk : in    bit);
+end mico;
+
+architecture functional of mico is
+
+  component display is                  -- neste arquivo
+    port (rst,clk : in bit;
+          enable  : in bit;
+          data    : in reg32);
+  end component display;
+
+  component mem_prog is                 -- no arquivo mem.vhd
+    port (ender : in  reg6;
+          instr : out reg32);
+  end component mem_prog;
+
+  component ULA is                      -- neste arquivo
+    port (fun : in reg4;
+          alfa,beta : in  reg32;
+          gama      : out reg32);
+  end component ULA;
+ 
+  component R is                        -- neste arquivo
+    port (clk         : in  bit;
+          wr_en       : in  bit;
+          r_a,r_b,r_c : in  reg4;
+          A,B         : out reg32;
+          C           : in  reg32);
+  end component R;
+
+  component mux32_2 is			-- neste arquivo
+  port(a,b : in  reg32;                   
+       s   : in  bit;                     
+       z   : out reg32);                  
+  end component mux32_2;
+
+  component branch_sel is		-- neste arquivo
+    port(alpha, beta, extend, proxi: in reg32;
+       branch: out reg32);
+  end component branch_sel;
+
+  component extender is
+    port(a : in reg16;
+	sel: in bit;
+ 	b: out reg32);
+  end component extender;
+
+  component mux6_2 is
+    port(a,b : in  reg6;                   -- neste arquivo
+       s   : in  bit;                     
+       z   : out reg6);                  
+  end component mux6_2;
+
+  component count16up is                -- em aux
+    port(rel, rst, ld, en: in  bit;
+          D:               in  reg16;
+          Q:               out reg16);
+  end component count16up;
+
+  component ip_control is		-- neste arquivo
+	port(clk	: in bit;
+             const	: in reg16;
+             A, B 	: in reg32;
+             op		: in reg4;
+             ip	        : out reg6);
+  end component ip_control;
+  
+  type t_control_type is record
+    extZero  : bit;       -- estende com zero=1, com sinal=0
+    selBeta  : bit;       -- seleciona fonte para entrada B da ULA
+    wr_display: bit;      -- atualiza display=1
+    selNxtIP : bit;       -- seleciona fonte do incremento do IP
+    wr_reg   : bit;       -- atualiza registrador: R(c) <= C
+  end record;
+
+  type t_control_mem is array (0 to 15) of t_control_type;
+
+  -- preencha esta tabela com os sinais de controle adequados
+  -- a tabela eh indexada com o opcode da instrucao
+  constant ctrl_table : t_control_mem := (
+  --extZ sBeta wrD sIP wrR
+    ('0','0', '0', '0','0'),            -- NOP
+    ('0','0', '0', '0','1'),            -- ADD
+    ('0','0', '0', '0','1'),            -- SUB
+    ('0','0', '0', '0','1'),            -- MUL
+    ('0','0', '0', '0','1'),            -- AND
+    ('0','0', '0', '0','1'),            -- OR
+    ('0','0', '0', '0','1'),            -- XOR
+    ('0','0', '0', '0','1'),            -- NOT
+    ('0','0', '0', '0','1'),            -- SLL
+    ('0','0', '0', '0','1'),            -- SRL
+    ('1','1', '0', '0','1'),            -- ORI
+    ('0','1', '0', '0','1'),            -- ADDI
+    ('0','0', '1', '0','0'),            -- SHOW
+    ('1','0', '0', '1','0'),            -- JUMP
+    ('1','0', '0', '1','0'),            -- BRANCH
+    ('0','0', '0', '0','0'));           -- HALT
+
+  signal extZero, selBeta, wr_display, selNxtIP, wr_reg : bit;
+
+  signal instr, A, B, C,Z, beta, extended : reg32;
+  signal this  : t_control_type;
+  signal const, ip : reg16;
+  signal opcode : reg4;
+  signal i_opcode : natural range 0 to 15;
+
+begin  -- functional
+  
+  U_ip: ip_control port map (clk,instr(15 downto 0), A, B, instr(31 downto 28),ip(5 downto 0));
+  
+  -- memoria de programa contem somente 64 palavrassubtype reg6  is bit_vector(4 
+  U_mem_prog: mem_prog port map(ip(5 downto 0), instr);
+  const<=instr(15 downto 0);
+
+  opcode <= instr(31 downto 28);
+  i_opcode <= BV2INT4(opcode);          -- indice do vetor DEVE ser inteiro
+  
+  this <= ctrl_table(i_opcode);         -- sinais de controle
+
+  extZero    <= this.extZero;
+  selBeta    <= this.selBeta;
+  wr_display <= this.wr_display;
+  selNxtIP   <= this.selNxtIP;
+  wr_reg     <= this.wr_reg;
+
+
+  U_extender: extender port map(const,selBeta,extended);
+  
+  U_regs: R port map(clk,wr_reg,instr(27 downto 24),instr(23 downto 20),instr(19 downto 16),A,B,C);
+
+  U_mux32_2: mux32_2 port map(B,extended,selBeta,Z);
+
+  U_ULA: ULA port map(opcode,A,Z,C);
+
+
+  -- nao altere esta linha
+  U_display: display port map (rst, clk, wr_display, A);
+  
+end functional;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+LIBRARY ieee;
+USE ieee.std_logic_1164.all;
+use work.p_wires.all;
+
+entity ULA is
+  port (fun : in reg4;
+        alfa,beta : in  reg32;
+        gama      : out reg32);
+end ULA;
+
+architecture behaviour of ULA is
+
+component adderCadeia is
+  port(inpA, inpB : in reg32;
+       outC : out reg32;
+       vem  : in bit;
+       vai  : out bit
+       );
+end component adderCadeia;
+
+component mult32_32 is
+  port(A, B : in reg32;
+	outp : out reg32);
+end component mult32_32;
+
+component shift_leftN is
+  port(inpn : in reg32;
+	contn : in reg5;
+       outpn : out reg32
+       );
+end component shift_leftN;
+
+component shift_rightN is
+  port(inpn : in reg32;
+	contn : in reg5;
+       outpn : out reg32
+       );
+end component shift_rightN;
+
+component ori_32 is
+  port(inp1, inp2 : in reg32;
+	outp : out reg32);
+end component ori_32;
+
+component mux16vet is
+  port(entr0,entr1,entr2,entr3,entr4,entr5,entr6,entr7,entr8,entr9,entr10,entr11,entr12,entr13,entr14,entr15 : in  reg32;
+       sel  : in  reg4;
+       z    : out reg32);
+end component mux16vet;
+
+  
+   signal result1,result2,result3,result4,result5,result6,result7,result8,result9,result10,result11 : reg32;
+   signal X, Y, nY : reg32;
+   signal controle_shift : reg5;
+   
+begin
+
+
+	X <=  alfa;
+	Y <=  beta;
+         Prepnot: nY <= (not(Y(31 downto 0)));
+	 Uadd1:		adderCadeia     port map(X,Y,result1,'0',open);             --ADD 
+	 Uadd2:		adderCadeia     port map(X,nY,result2,'1',open);             --SUB 
+	 Umult1:    	mult32_32 	port map(X,Y,result3); 		            --MUL 
+	 Ushif1:	shift_leftN     port map(X,Y(4 downto 0),result4);         --SHL 
+	 Ushif2:     	shift_rightN    port map(X,Y(4 downto 0),result5);         --SHR 
+	 Uori1:     	ori_32          port map(X,Y,result6);		            --ORI 
+     	 Uadd3:         adderCadeia     port map(X,Y,result7,'0',open); 	    --ADDI
+	 Uand:     	result8<=(X(31 downto 0) AND Y(31 downto 0));               --AND
+	 Uor:		result9<=(X(31 downto 0) OR Y(31 downto 0)); 	            --OR
+	 Uxor:  	result10<=(X(31 downto 0) XOR Y(31 downto 0));	            --XOR
+	 Unot:		result11<=(not(X(31 downto 0))); 	                    --NOT
+	
+
+
+
+        U_mulf:    mux16vet port map(x"00000000",result1,result2,result3,result8,result9,result10,result11,result4,result5,result6,result7,x"00000000",x"00000000",x"00000000",x"00000000",fun,gama);
+
+
+
+
+
+
+  
+end behaviour;
+-- -----------------------------------------------------------------------
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+use work.p_wires.all;
+
+entity R is
+  port (clk         : in  bit;
+        wr_en       : in  bit;          -- ativo em 1
+        r_a,r_b,r_c : in  reg4;
+        A,B         : out reg32;
+        C           : in  reg32);
+end R;
+
+architecture rtl of R is
+
+component registrador32 is
+  port(rel, rst, ld: in  bit;
+        D:           in  reg32;
+        Q:           out reg32);
+end component registrador32;
+
+component demux16 is
+port(f:in reg32;
+s:in reg4;
+y0,y1,y2,y3,y4,y5,y6,y7,y8,y9,y10,y11,y12,y13,y14,y15:out reg32);
+end component demux16;
+
+component mux16vet is
+  port(entr0,entr1,entr2,entr3,entr4,entr5,entr6,entr7,entr8,entr9,entr10,entr11,entr12,entr13,entr14,entr15 : in  reg32;
+       sel  : in  reg4;
+       z    : out reg32);
+end component mux16vet;
+
+
+--rel=clk
+--rst reset
+--ld load
+
+signal C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13,C14,C15,C16:reg32;
+signal saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,saidamux8,saidamux9,saidamux10,saidamux11,saidamux12,saidamux13,saidamux14,saidamux15,saidamux16:reg32;
+
+ 
+begin
+
+
+Ureg1:  registrador32 port map(clk,'0','0', C1,saidamux1);
+Ureg2:  registrador32 port map(clk,'1',wr_en, C2,saidamux2);
+Ureg3:  registrador32 port map(clk,'1',wr_en, C3,saidamux3);
+Ureg4:  registrador32 port map(clk,'1',wr_en, C4,saidamux4);
+Ureg5:  registrador32 port map(clk,'1',wr_en, C5,saidamux5);
+Ureg6:  registrador32 port map(clk,'1',wr_en, C6,saidamux6);
+Ureg7:  registrador32 port map(clk,'1',wr_en, C7,saidamux7);
+Ureg8:  registrador32 port map(clk,'1',wr_en, C8,saidamux8);
+Ureg9:  registrador32 port map(clk,'1',wr_en, C9,saidamux9);
+Ureg10: registrador32 port map(clk,'1',wr_en,C10,saidamux10);
+Ureg11: registrador32 port map(clk,'1',wr_en,C11,saidamux11);
+Ureg12: registrador32 port map(clk,'1',wr_en,C12,saidamux12);
+Ureg13: registrador32 port map(clk,'1',wr_en,C13,saidamux13);
+Ureg14: registrador32 port map(clk,'1',wr_en,C14,saidamux14);
+Ureg15: registrador32 port map(clk,'1',wr_en,C15,saidamux15);
+Ureg16: registrador32 port map(clk,'1',wr_en,C16,saidamux16);
+
+
+U_mul11:    mux16vet port map(saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,saidamux8,saidamux9,saidamux10,saidamux11,saidamux12,saidamux13,saidamux14,saidamux15,saidamux16,r_a,A);
+U_mul21:    mux16vet port map(saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,saidamux8,saidamux9,saidamux10,saidamux11,saidamux12,saidamux13,saidamux14,saidamux15,saidamux16,r_b,B);
+Udemux:   demux16 port map(C,r_c,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13,C14,C15,C16);
+
+  
+end rtl;
+-- -----------------------------------------------------------------------
+
+
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- UFPR, BCC, ci210 2016-2 trabalho semestral, autor: Roberto Hexsel, 07out
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- display: exibe inteiro na saida padrao do simulador
+--          NAO ALTERE ESTE MODELO
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library IEEE; use std.textio.all;
+use work.p_wires.all;
+
+entity display is
+  port (rst,clk : in bit;
+        enable  : in bit;
+        data    : in reg32);
+end display;
+
+architecture functional of display is
+  file output : text open write_mode is "STD_OUTPUT";
+begin  -- functional
+
+  U_WRITE_OUT: process(clk)
+    variable msg : line;
+  begin
+    if falling_edge(clk) and enable = '1' then
+      write ( msg, string'(BV32HEX(data)) );
+      writeline( output, msg );
+    end if;
+  end process U_WRITE_OUT;
+
+end functional;
+-- ++ display ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux32_2(a,b,s,z)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
+
+entity mux32_2 is
+  port(a,b : in  reg32;                   -- entradas de dados
+       s   : in  bit;                     -- entrada de selecao
+       z   : out reg32);                  -- saida
+end mux32_2;
+
+architecture behaviour of mux32_2 is 
+
+  
+  signal result : reg32;
+  signal R,P : reg32 ; 
+  
+begin  
+	R <= ('0' & a(30 downto 0));
+	P <= ('0' & b(30 downto 0));
+
+	z <=  result(31 downto 0);
+	
+	result <=	R(31 downto 0) when s = '0' else
+			P(31 downto 0) when s = '1' else
+			x"00000000";
+
+    
+end behaviour;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- mux6_2(a,b,s,z)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
+
+entity mux6_2 is
+  port(a,b : in  reg6;                   -- entradas de dados
+       s   : in  bit;                     -- entrada de selecao
+       z   : out reg6);                  -- saida
+end mux6_2;
+
+architecture behaviour of mux6_2 is 
+
+  
+  signal result : reg6;
+  signal R,P : reg6 ; 
+  
+begin  
+	R <= ('0' & a(4 downto 0));
+	P <= ('0' & b(4 downto 0));
+
+	z <=  result(5 downto 0);
+	
+	result <=	R(5 downto 0) when s = '0' else
+			P(5 downto 0) when s = '1' else
+			"000000";
+
+    
+end behaviour;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- extensor
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
+
+entity extender is
+  port(a : in reg16;
+	sel: in bit;
+	b: out reg32);
+end extender;
+
+
+architecture behaviour of extender is
+
+begin
+	P1: process (sel) is
+	begin
+	M0: case sel is
+	  when '0' => b(31 downto 16)<= x"0000";
+	  when others =>
+		b(16)<=a(15);
+		b(17)<=a(15);
+		b(18)<=a(15);
+		b(19)<=a(15);
+		b(20)<=a(15);
+		b(21)<=a(15);
+		b(22)<=a(15);
+		b(23)<=a(15);
+		b(24)<=a(15);
+		b(25)<=a(15);
+		b(26)<=a(15);
+		b(27)<=a(15);
+		b(28)<=a(15);
+		b(29)<=a(15);
+		b(30)<=a(15);
+		b(31)<=a(15);
+	end case M0;
+        end process;
+	b(15 downto 0)<= a;
+
+end behaviour;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- demux16
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+library IEEE; use IEEE.STD_LOGIC_1164.ALL;use work.p_wires.all;
+
+entity demux16 is
+port(f:in reg32;
+s:in reg4;
+y0,y1,y2,y3,y4,y5,y6,y7,y8,y9,y10,y11,y12,y13,y14,y15:out reg32);
+end demux16;
+
+architecture behavioral of demux16 is
+begin
+P0: process (s,f) is
+begin
+C0: case s is
+
+when"0000"=>y0<=f;
+when"0001"=>y1<=f;
+when"0010"=>y2<=f;
+when"0011"=>y3<=f;
+when"0100"=>y4<=f;
+when"0101"=>y5<=f;
+when"0110"=>y6<=f;
+when"0111"=>y7<=f;
+when"1000"=>y8<=f;
+when"1001"=>y9<=f;
+when"1010"=>y10<=f;
+when"1011"=>y11<=f;
+when"1100"=>y12<=f;
+when"1101"=>y13<=f;
+when"1110"=>y14<=f;
+when"1111"=>y15<=f;
+end case;
+end process;
+
+
+end behavioral;
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- ip_control
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library ieee; use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use work.p_WIRES.all;
+
+entity ip_control is 
+	port(clk	: in bit;
+		 const	: in reg16;
+		 A, B 	: in reg32;
+		 op		: in reg4;
+		 ip	: out reg6);
+end ip_control;
+
+architecture nao_funcional of ip_control is
+	
+signal selNxtIP : bit;
+signal  data : reg16 := x"0000";
+begin
+	
+	
+  P1: process (clk) is
+  variable cont : integer;
+  begin
+    if rising_edge(clk) then
+    M0:  case op is
+        when x"f" => data <= data;
+        when x"d" => data <= const;
+        when x"e" =>
+          if A=B then
+            data <= const;
+          else
+            cont := BV2INT16(data)+1;
+            data <= INT2BV16(cont);
+          end if;
+      when others =>
+          cont := BV2INT16(data)+1;
+          data <= INT2BV16(cont);
+    end case M0;
+    end if;
+    end process;
+    ip<=data(5 downto 0);
+
+
+end nao_funcional;
+

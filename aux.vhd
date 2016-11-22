@@ -162,8 +162,8 @@ architecture behaviour of mux32_2 is
   signal R,P : reg32 ; 
   
 begin  
-	R <= ('0' & a(30 downto 0));
-	P <= ('0' & b(30 downto 0));
+	R <= a(31 downto 0);
+	P <= b(31 downto 0);
 
 	z <=  result(31 downto 0);
 	
@@ -771,199 +771,109 @@ end estrutural;
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
---++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- multiplicador auxiliar
---++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- multiplica por 1: A(15..0)*B(i) => S(16..0)
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
 
-entity mult_1 is
-  port(inp : in reg32;
-	fator : in bit;
-	desloc : in reg32;
-	outp : out reg32);
-end mult_1;
+entity m_1 is
+  port(A, B : in  reg32;                -- entradas A,B
+       S : in bit;                      -- bit por multiplicar
+       R : out reg33);                  -- produto parcial
+end m_1;
 
-architecture estrutural of mult_1 is 
-
-component shift_leftN is
-  port(inpn : in reg32;
-	contn : in reg5;
-       outpn : out reg32
-       );
-end component shift_leftN;
-
-component mux32_2 is
-  port(a,b : in  reg32;                  
-       s   : in  bit;                     
-       z   : out reg32);                 
-end component mux32_2;
-
-component or2 is
-  generic (prop : time := t_or2);
-  port(A,B : in bit;
-       S   : out bit);
-end component or2;
-
-
-signal temp :reg32;
-signal zero :reg32;
-signal saidamux :reg32;
-signal result :reg32;
-signal ent1, ent2, sai0 : reg32;
-
-begin
-
-outp<=result(31 downto 0);
-temp(31 downto 0)<=inp(31 downto 0);
-zero(31 downto 0)<="00000000000000000000000000000000";
-
-
-Uor1:  or2 port map( ent1(1), ent2(1),  sai0(1));
-Uor2:  or2 port map( ent1(2), ent2(2),  sai0(2));
-Uor3:  or2 port map( ent1(3), ent2(3),  sai0(3));
-Uor4:  or2 port map( ent1(4), ent2(4),  sai0(4));
-Uor5:  or2 port map( ent1(5), ent2(5),  sai0(5));
-Uor6:  or2 port map( ent1(6), ent2(6),  sai0(6));
-Uor7:  or2 port map( ent1(7), ent2(7),  sai0(7));
-Uor8:  or2 port map( ent1(8), ent2(8),  sai0(8));
-Uor9:  or2 port map( ent1(9), ent2(9),  sai0(9));
-Uor10: or2 port map( ent1(10),ent2(10), sai0(10));
-Uor11: or2 port map( ent1(11),ent2(11), sai0(11));
-Uor12: or2 port map( ent1(12),ent2(12), sai0(12));
-Uor13: or2 port map( ent1(13),ent2(13), sai0(13));
-Uor14: or2 port map( ent1(14),ent2(14), sai0(14));
-Uor15: or2 port map( ent1(15),ent2(15), sai0(15));
-Uor16: or2 port map( ent1(16),ent2(16), sai0(16));
-Uor17: or2 port map( ent1(17),ent2(17), sai0(17));
-Uor18: or2 port map( ent1(18),ent2(18), sai0(18));
-Uor19: or2 port map( ent1(19),ent2(19), sai0(19));
-Uor20: or2 port map( ent1(20),ent2(20), sai0(20));
-Uor21: or2 port map( ent1(21),ent2(21), sai0(21));
-Uor22: or2 port map( ent1(22),ent2(22), sai0(22));
-Uor23: or2 port map( ent1(23),ent2(23), sai0(23));
-Uor24: or2 port map( ent1(24),ent2(24), sai0(24));
-Uor25: or2 port map( ent1(25),ent2(25), sai0(25));
-Uor26: or2 port map( ent1(26),ent2(26), sai0(26));
-Uor27: or2 port map( ent1(27),ent2(27), sai0(27));
-Uor28: or2 port map( ent1(28),ent2(28), sai0(28));
-Uor29: or2 port map( ent1(29),ent2(29), sai0(29));
-Uor30: or2 port map( ent1(30),ent2(30), sai0(30));
-Uor31: or2 port map( ent1(31),ent2(31), sai0(31));
-
-
-
-Umux: mux32_2 port map(temp,zero, fator, saidamux);
-Ushif: shift_leftN port map(saidamux, desloc(4 downto 0), result);
-
-end estrutural; 
-
---++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
---++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- multiplicador 32x32
---++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
-
-entity mult_32 is
-  port(inp1, inp2 : in reg32;
-	outp : out reg32);
-end mult_32;
-
-
-architecture estrutural of mult_32 is
-
-component mult_1 is
-  port(inp : in reg32;
-	fator : in bit;
-	desloc : in reg32;
-	outp : out reg32);
-end component mult_1;
+architecture funcional of m_1 is 
 
 component adderCadeia is
   port(inpA, inpB : in reg32;
        outC : out reg32;
-       vem  : in bit;
+       vem  : in  bit;    --https://www.linuxmint.com/start/sarah/
        vai  : out bit
        );
 end component adderCadeia;
 
-signal s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16 : reg32;
-signal s17, s18, s19, s20, s21, s22, s23, s24, s25, s26, s27, s28, s29, s30, s31, s32 : reg32;
-signal a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16 : reg32;
-signal a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31 : reg32;
+  signal somaAB : reg33;
 
 begin
 
-Umult0:  mult_1 port map( inp1,inp2(0), x"00000000",  s0);
-Umult1:  mult_1 port map( inp1,inp2(1), x"00000001",  s1);
-Umult2:  mult_1 port map( inp1,inp2(2), x"00000002",  s2);
-Umult3:  mult_1 port map( inp1,inp2(3), x"00000003",  s3);
-Umult4:  mult_1 port map( inp1,inp2(4), x"00000004",  s4);
-Umult5:  mult_1 port map( inp1,inp2(5), x"00000005",  s5);
-Umult6:  mult_1 port map( inp1,inp2(6), x"00000006",  s6);
-Umult7:  mult_1 port map( inp1,inp2(7), x"00000007",  s7);
-Umult8:  mult_1 port map( inp1,inp2(8), x"00000008",  s8);
-Umult9:  mult_1 port map( inp1,inp2(9), x"00000009",  s9);
-Umult10: mult_1 port map( inp1,inp2(10),x"0000000a",  s10);
-Umult11: mult_1 port map( inp1,inp2(11),x"0000000b",  s11);
-Umult12: mult_1 port map( inp1,inp2(12),x"0000000c",  s12);
-Umult13: mult_1 port map( inp1,inp2(13),x"0000000d",  s13);
-Umult14: mult_1 port map( inp1,inp2(14),x"0000000e",  s14);
-Umult15: mult_1 port map( inp1,inp2(15),x"0000000f",  s15);
-Umult16: mult_1 port map( inp1,inp2(16),x"00000010", s16);
-Umult17: mult_1 port map( inp1,inp2(17),x"00000011", s17);
-Umult18: mult_1 port map( inp1,inp2(18),x"00000012", s18);
-Umult19: mult_1 port map( inp1,inp2(19),x"00000013", s19);
-Umult20: mult_1 port map( inp1,inp2(20),x"00000014", s20);
-Umult21: mult_1 port map( inp1,inp2(21),x"00000015", s22);
-Umult22: mult_1 port map( inp1,inp2(22),x"00000016", s23);
-Umult23: mult_1 port map( inp1,inp2(23),x"00000017", s24);
-Umult24: mult_1 port map( inp1,inp2(24),x"00000018", s25);
-Umult25: mult_1 port map( inp1,inp2(25),x"00000019", s26);
-Umult26: mult_1 port map( inp1,inp2(26),x"0000001a", s27);
-Umult27: mult_1 port map( inp1,inp2(27),x"0000001b", s28);
-Umult28: mult_1 port map( inp1,inp2(28),x"0000001c", s29);
-Umult29: mult_1 port map( inp1,inp2(29),x"0000001d", s30);
-Umult30: mult_1 port map( inp1,inp2(30),x"0000001e", s31);
-Umult31: mult_1 port map( inp1,inp2(31),x"0000001f", s32);
+  U_soma: adderCadeia
+    port map(A, B , somaAB(31 downto 0), '0', somaAB(32)); 
 
-Uadd0:  adderCadeia port map(s0, s1, a0, '0', open);
-Uadd1:  adderCadeia port map(a0, s2, a1, '0', open);
-Uadd2:  adderCadeia port map(a1, s3, a2, '0', open);
-Uadd3:  adderCadeia port map(a2, s4, a3, '0', open);
-Uadd4:  adderCadeia port map(a3, s5, a4, '0', open);
-Uadd5:  adderCadeia port map(a4, s6, a5, '0', open);
-Uadd6:  adderCadeia port map(a5, s7, a6, '0', open);
-Uadd7:  adderCadeia port map(a6, s8, a7, '0', open);
-Uadd8:  adderCadeia port map(a7, s9, a8, '0', open);
-Uadd9:  adderCadeia port map(a8, s10,a9, '0', open);
-Uadd10: adderCadeia port map(a9, s11,a10,'0', open);
-Uadd11: adderCadeia port map(a10,s12,a11,'0', open);
-Uadd12: adderCadeia port map(a11,s13,a12,'0', open);
-Uadd13: adderCadeia port map(a12,s14,a13,'0', open);
-Uadd14: adderCadeia port map(a13,s15,a14,'0', open);
-Uadd15: adderCadeia port map(a14,s16,a15,'0', open);
-Uadd16: adderCadeia port map(a15,s17,a16,'0', open);
-Uadd17: adderCadeia port map(a16,s18,a17,'0', open);
-Uadd18: adderCadeia port map(a17,s19,a18,'0', open);
-Uadd19: adderCadeia port map(a18,s20,a19,'0', open);
-Uadd20: adderCadeia port map(a19,s21,a20,'0', open);
-Uadd21: adderCadeia port map(a20,s22,a21,'0', open);
-Uadd22: adderCadeia port map(a21,s23,a22,'0', open);
-Uadd23: adderCadeia port map(a22,s24,a23,'0', open);
-Uadd24: adderCadeia port map(a23,s25,a24,'0', open);
-Uadd25: adderCadeia port map(a24,s26,a25,'0', open);
-Uadd26: adderCadeia port map(a25,s27,a26,'0', open);
-Uadd27: adderCadeia port map(a26,s28,a27,'0', open);
-Uadd28: adderCadeia port map(a27,s29,a28,'0', open);
-Uadd29: adderCadeia port map(a28,s30,a29,'0', open);
-Uadd30: adderCadeia port map(a29,s31,a30,'0', open);
-Uadd31: adderCadeia port map(a30,s32,outp,'0',open);
+  -- defina a constante t_mux2 em packageWires.vhd
+  R <= somaAB when S = '1' else ('0' & B) ;
+
+end funcional;
+-- -------------------------------------------------------------------
 
 
-end estrutural;
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- multiplicador combinacional
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+library IEEE; use IEEE.std_logic_1164.all; use IEEE.numeric_std.all;
+use work.p_wires.all;
 
---++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+entity mult32_32 is
+  port(A, B : in  reg32;   -- entradas A,B
+       outp : out reg32);  -- produto
+end mult32_32;
+
+
+ architecture estrutural of mult32_32 is 
+ 
+   component m_1 is port(A,B : in  bit_vector;   -- reg16
+                           S   : in  bit;
+                           R   : out bit_vector);  -- reg17
+   end component m_1;
+ 
+   signal p01,p02,p03,p04,p05,p06,p07,p08: reg33;
+   signal p09,p10,p11,p12,p13,p14,p15,p16: reg33;
+   signal p17,p18,p19,p20,p21,p22,p23,p24: reg33;
+   signal p25,p26,p27,p28,p29,p30,p31,p32: reg33;
+ 
+ begin
+ 
+ U_00: m_1 port map (A, X"00000000", B(0) ,p01);
+ U_01: m_1 port map (A, p01(32 downto 1), B(1), p02);
+ U_02: m_1 port map (A, p02(32 downto 1), B(2), p03);
+ U_03: m_1 port map (A, p03(32 downto 1), B(3), p04);
+ U_04: m_1 port map (A, p04(32 downto 1), B(4), p05);
+ U_05: m_1 port map (A, p05(32 downto 1), B(5), p06);
+ U_06: m_1 port map (A, p06(32 downto 1), B(6), p07);
+ U_07: m_1 port map (A, p07(32 downto 1), B(7), p08);
+ U_08: m_1 port map (A, p08(32 downto 1), B(8), p09);
+ U_09: m_1 port map (A, p09(32 downto 1), B(9), p10);
+ U_10: m_1 port map (A, p10(32 downto 1), B(10), p11);
+ U_11: m_1 port map (A, p11(32 downto 1), B(11), p12);
+ U_12: m_1 port map (A, p12(32 downto 1), B(12), p13);
+ U_13: m_1 port map (A, p13(32 downto 1), B(13), p14);
+ U_14: m_1 port map (A, p14(32 downto 1), B(14), p15);
+ U_15: m_1 port map (A, p15(32 downto 1), B(15), p16);
+ U_16: m_1 port map (A, p16(32 downto 1), B(16), p17);
+ U_17: m_1 port map (A, p17(32 downto 1), B(17), p18);
+ U_18: m_1 port map (A, p18(32 downto 1), B(18), p19);
+ U_19: m_1 port map (A, p19(32 downto 1), B(19), p20);
+ U_20: m_1 port map (A, p20(32 downto 1), B(20), p21); 
+ U_21: m_1 port map (A, p21(32 downto 1), B(21), p22);
+ U_22: m_1 port map (A, p22(32 downto 1), B(22), p23);
+ U_23: m_1 port map (A, p23(32 downto 1), B(23), p24);
+ U_24: m_1 port map (A, p24(32 downto 1), B(24), p25);
+ U_25: m_1 port map (A, p25(32 downto 1), B(25), p26);
+ U_26: m_1 port map (A, p26(32 downto 1), B(26), p27);
+ U_27: m_1 port map (A, p27(32 downto 1), B(27), p28);
+ U_28: m_1 port map (A, p28(32 downto 1), B(28), p29);
+ U_29: m_1 port map (A, p29(32 downto 1), B(29), p30);
+ U_30: m_1 port map (A, p30(32 downto 1), B(30), p31);
+ U_31: m_1 port map (A, p31(32 downto 1), B(31), p32);
+
+ 
+ 
+ outp <=  p32(0) & p31(0) &  p30(0) & p29(0) &  P28(0) & p27(0) & p26(0) &  p25(0) & p24(0) & p23(0) & 
+		  p22(0) & p21(0) &  p20(0) & p19(0) &  p18(0) & p17(0) & 
+		  p16(0) & p15(0) &  p14(0) & p13(0) &  p12(0) & p11(0) &  p10(0) & p09(0) &
+		  p08(0) & p07(0) &  p06(0) & p05(0) &  p04(0) & p03(0) &  p02(0) & p01(0);
+   
+ end estrutural;
+--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 --++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- or com constante lógica
@@ -1040,17 +950,17 @@ end estrutural;
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- mux2_16(a,b,s,z)
+-- mux2_32(a,b,s,z)
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 use work.p_wires.all;
 
-entity mux2_16 is
+entity mux2_32 is
   port(a,b : in  reg32;                   -- entradas de dados
        s   : in  bit;                   -- entrada de selecao
        z   : out reg32);                  -- saida
-end mux2_16;
+end mux2_32;
 
-architecture estrut of mux2_16 is 
+architecture estrut of mux2_32 is 
   
 begin  -- compare ligacoes dos sinais com diagrama das portas logicas
   
@@ -1074,15 +984,15 @@ end mux4;
 
 architecture estrut of mux4 is 
 
-  component mux2_16 is
+  component mux2_32 is
     port(A,B : in  reg32; S : in  bit; Z : out reg32);
-  end component mux2_16;
+  end component mux2_32;
 
   signal p,q : reg32;                     -- sinais internos
 begin
-  Um1: mux2_16 port map(a, b, s0, p);
-  Um2: mux2_16 port map(c, d, s0, q);
-  Umf: mux2_16 port map(p, q, s1, z);
+  Um1: mux2_32 port map(a, b, s0, p);
+  Um2: mux2_32 port map(c, d, s0, q);
+  Umf: mux2_32 port map(p, q, s1, z);
   -- implemente usando tres mux2
 
 end architecture estrut;
@@ -1101,9 +1011,9 @@ end mux8vet;
 
 architecture estrut of mux8vet is 
 
-  component mux2_16 is
+  component mux2_32 is
     port(A,B : in  reg32; S : in  bit; Z : out reg32);
-  end component mux2_16;
+  end component mux2_32;
 
   component mux4 is
     port(A,B,C,D : in  reg32; S0,S1 : in  bit; Z : out reg32);
@@ -1114,7 +1024,7 @@ architecture estrut of mux8vet is
 begin
   Um1: mux4 port map(entr0, entr1, entr2, entr3, sel(0), sel(1), x);
   Um2: mux4 port map(entr4, entr5, entr6, entr7, sel(0), sel(1), y);
-  Umf: mux2_16 port map(x, y, sel(2), z);
+  Umf: mux2_32 port map(x, y, sel(2), z);
   -- implemente usando dois mux4 e um mux2
 
 end architecture estrut;
@@ -1133,9 +1043,9 @@ end mux16vet;
 
 architecture estrut of mux16vet is 
 
-  component mux2_16 is
+  component mux2_32 is
     port(A,B : in  reg32; S : in  bit; Z : out reg32);
-  end component mux2_16;
+  end component mux2_32;
 
 component mux8vet is
   port(entr0,entr1,entr2,entr3,entr4,entr5,entr6,entr7 : in  reg32; sel  : in  reg3; z    : out reg32);
@@ -1146,9 +1056,10 @@ end component mux8vet;
 begin
   Um1: mux8vet port map(entr0, entr1, entr2, entr3,entr4, entr5, entr6, entr7, sel(2 downto 0), x);
   Um2: mux8vet port map(entr8, entr9, entr10, entr11,entr12, entr13, entr14, entr15, sel(2 downto 0), y);
-  Umf: mux2_16 port map(x, y, sel(3), z);
+  Umf: mux2_32 port map(x, y, sel(3), z);
 
 
 end architecture estrut;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 

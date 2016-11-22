@@ -12,75 +12,86 @@ entity mem_prog is
 
   -- memoria de programa contem somente 64 palavras
   constant program : t_prog_mem := (
-    x"c0000000",
-    x"b0010001",
-    x"c1110000",
-    x"11120000",
-    x"c2000000",
-    x"c0000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"a0011111",
-    x"c1000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"f0000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000",
-    x"00000000");
+    x"00000000", -- nop
 
+    x"b00f000a", -- insere o valor de n no registrador 15
+    x"b00e0001", -- insere o multiplicador no registrador 14
+    x"00000000", -- nop
+    
+    x"b0010001", -- inicializa o registrador com o valor do fatorial
+    x"00000000", -- nop
+      
+    x"efe0003c", -- branch, se o valor no registrador de e for igual a f,
+                 -- imprime o fatorial e para tudo
+    x"00000000", -- nop
+
+    
+    x"31e10000", -- multiplica o registrador com o valor pelo multiplicador e guarda
+                 -- no registrador do valor
+    x"00000000", -- nop
+    
+    x"be0e0001", -- aumenta 1 no multiplicador
+    x"00000000", -- nop
+    
+    x"d0000006", -- faz o jump para o branch
+    
+
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"00000000",
+    x"31e10000", -- multiplicação final pra achar o fatorial de N
+    x"ce000000", -- imprime o valor de N
+    x"c1000000", -- imprime o valor do fatorial de N
+    x"f000003f"); -- encerra o programa
 
   function BV2INT6(S: reg6) return integer is
     variable result: integer;
   begin
+    -- if S(5) = '1' then result := -63; else result := 0; end if;
     for i in S'range loop
       result := result * 2;
       if S(i) = '1' then
