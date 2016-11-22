@@ -101,11 +101,11 @@ architecture functional of mico is
   end component count16up;
 
   component ip_control is		-- neste arquivo
-      port(opcode : in reg4;
-           ipatual : in reg16;
-           jump : in reg16;
-           alpha, beta : in reg32;
-           prox_ip : out reg16);
+	port(clk	: in bit;
+             const	: in reg16;
+             A, B 	: in reg32;
+             op		: in reg4;
+             ip	        : out reg6);
   end component ip_control;
   
   type t_control_type is record
@@ -137,21 +137,22 @@ architecture functional of mico is
     ('0','0', '1', '0','0'),            -- SHOW
     ('1','0', '0', '1','0'),            -- JUMP
     ('1','0', '0', '1','0'),            -- BRANCH
-    ('0','0', '0', '0','0'));           -- HALT
+    ('0','0', '0', '1','0'));           -- HALT
 
   signal extZero, selBeta, wr_display, selNxtIP, wr_reg : bit;
 
   signal instr, A, B, C,Z, beta, extended : reg32;
   signal this  : t_control_type;
-  signal const,ip_at, ip, ipatual : reg16;
+  signal const, ip : reg16;
   signal opcode : reg4;
   signal i_opcode : natural range 0 to 15;
-  signal lixo: bit;
-begin  -- functional
 
+begin  -- functional
+  
+  U_ip: ip_control port map (clk,instr(15 downto 0), A, B, instr(31 downto 28),ip(5 downto 0));
+  
   -- memoria de programa contem somente 64 palavrassubtype reg6  is bit_vector(4 
   U_mem_prog: mem_prog port map(ip(5 downto 0), instr);
-  ip_at <= ip;
   const<=instr(15 downto 0);
 
   opcode <= instr(31 downto 28);
@@ -165,7 +166,6 @@ begin  -- functional
   selNxtIP   <= this.selNxtIP;
   wr_reg     <= this.wr_reg;
 
-  U_cont_IP: count16up port map(clk, '1', '0', '1', ipatual, ip);
 
   U_extender: extender port map(const,selBeta,extended);
   
@@ -174,7 +174,6 @@ begin  -- functional
   U_mux32_2: mux32_2 port map(B,extended,selBeta,Z);
 
   U_ULA: ULA port map(opcode,A,Z,C);
- -- U_ipcontrol: ip_control port map(opcode,ipatual,const,A,B,ip);
 
 
   -- nao altere esta linha
@@ -240,7 +239,7 @@ end component mux16vet;
   
    signal result1,result2,result3,result4,result5,result6,result7,result8,result9,result10,result11 : reg32;
    signal X, Y : reg32;
-
+   signal controle_shift : reg5;
    
 begin
 
@@ -258,12 +257,12 @@ begin
 	 Uand:     	result8<=(X(31 downto 0) AND Y(31 downto 0));               --AND
 	 Uor:		result9<=(X(31 downto 0) OR Y(31 downto 0)); 	            --OR
 	 Uxor:  	result10<=(X(31 downto 0) XOR Y(31 downto 0));	            --XOR
-	 Unot:		result11<=(not X(31 downto 0)); 	                    --NOT
+	 Unot:		result11<=(not(X(31 downto 0))); 	                    --NOT
 	
 
 
 
-        U_mul:    mux16vet port map(x"00000000",result1,result2,result3,result8,result9,result10,result11,result4,result5,result6,result7,x"00000000",x"00000000",x"00000000",x"00000000",fun,gama);
+        U_mulf:    mux16vet port map(x"00000000",result1,result2,result3,result8,result9,result10,result11,result4,result5,result6,result7,x"00000000",x"00000000",x"00000000",x"00000000",fun,gama);
 
 
 
@@ -335,8 +334,8 @@ Ureg15: registrador32 port map(clk,'1',wr_en,C15,saidamux15);
 Ureg16: registrador32 port map(clk,'1',wr_en,C16,saidamux16);
 
 
-U_mul1:    mux16vet port map(saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,saidamux8,saidamux9,saidamux10,saidamux11,saidamux12,saidamux13,saidamux14,saidamux15,saidamux16,r_a,A);
-U_mul2:    mux16vet port map(saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,saidamux8,saidamux9,saidamux10,saidamux11,saidamux12,saidamux13,saidamux14,saidamux15,saidamux16,r_b,B);
+U_mul11:    mux16vet port map(saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,saidamux8,saidamux9,saidamux10,saidamux11,saidamux12,saidamux13,saidamux14,saidamux15,saidamux16,r_a,A);
+U_mul21:    mux16vet port map(saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,saidamux8,saidamux9,saidamux10,saidamux11,saidamux12,saidamux13,saidamux14,saidamux15,saidamux16,r_b,B);
 Udemux:   demux16 port map(C,r_c,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13,C14,C15,C16);
 
   
@@ -536,35 +535,44 @@ end behavioral;
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- ip_control
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-LIBRARY ieee;USE ieee.std_logic_1164.all;use work.p_wires.all;
-entity ip_control is
-port(opcode : in reg4;
-     ipatual : in reg16;
-     jump : in reg16;
-     alpha, beta : in reg32;
-     prox_ip : out reg16);
+library ieee; use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use work.p_WIRES.all;
+
+entity ip_control is 
+	port(clk	: in bit;
+		 const	: in reg16;
+		 A, B 	: in reg32;
+		 op		: in reg4;
+		 ip	: out reg6);
 end ip_control;
 
-architecture controle of ip_control is
-  
-  signal cont, branch : reg16;
-  signal sel : boolean;
-  
-  begin
-   -- sel <= (alpha = beta);
-    
-    P1: process (opcode) is
-	begin
-    --  M0: case sel is
-      --  when true => branch <= jump;
-       -- when false => branch <= cont;
-      --end case M0;
-      M1: case opcode is
-        when x"d" => prox_ip <= jump;
-        when x"e" => prox_ip <= jump;
-        when x"f" => prox_ip <= ipatual;
-        when others => prox_ip <= cont;
-      end case M1;
-    end process;
+architecture nao_funcional of ip_control is
+	
 
-end controle;
+  component count16up is
+  port(rel, rst, ld, en: in  bit;
+        D:               in  reg16;
+        Q:               out reg16);
+	end component count16up;
+
+
+signal selNxtIP : bit;
+signal  data : reg16;
+signal som: bit;
+begin
+	
+	
+	
+	U_cont: count16up port map (clk, '1', selNxtIP, som, const, data);
+	ip<=data(5 downto 0);
+
+	selNxtIP<= '1' when op=x"f" else
+				 '1' when op=x"d" else
+				 '1' when (op=x"e" AND A=B) else 
+				 '0';
+	som<= '0' when (selNxtIP='1') else
+			'1';
+	
+end nao_funcional;
+
