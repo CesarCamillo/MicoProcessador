@@ -553,17 +553,17 @@ architecture controle of ip_control is
   
   begin
     U_cont_IP: count16up port map(clk, '1', '0', '1', ipatual, cont);
-    sel <= (alpha = beta);
+   -- sel <= (alpha = beta);
     
-    P1: process (opcode,sel) is
+    P1: process (opcode) is
 	begin
-      M0: case sel is
-        when true => branch <= jump;
-        when false => branch <= cont;
-      end case M0;
+    --  M0: case sel is
+      --  when true => branch <= jump;
+       -- when false => branch <= cont;
+      --end case M0;
       M1: case opcode is
         when x"d" => prox_ip <= jump;
-        when x"e" => prox_ip <= branch;
+        when x"e" => prox_ip <= jump;
         when x"f" => prox_ip <= ipatual;
         when others => prox_ip <= cont;
       end case M1;
