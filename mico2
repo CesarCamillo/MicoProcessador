@@ -99,6 +99,7 @@ architecture functional of mico is
            ipatual : in reg16;
            jump : in reg16;
            alpha, beta : in reg32;
+	clk: in bit;
            prox_ip : out reg16);
   end component ip_control;
   
