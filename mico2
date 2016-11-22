@@ -167,7 +167,7 @@ begin  -- functional
   U_mux32_2: mux32_2 port map(B,extended,selBeta,Z);
 
   U_ULA: ULA port map(opcode,A,Z,C);
-  U_ipcontrol: ip_control port map(opcode,ip_at,instr(15 downto 0),A,B,ip);
+  U_ipcontrol: ip_control port map(opcode,ip_at,const,A,B,clk,ip);
 
 
   -- nao altere esta linha
@@ -535,6 +535,7 @@ port(opcode : in reg4;
      ipatual : in reg16;
      jump : in reg16;
      alpha, beta : in reg32;
+     clk : in bit;
      prox_ip : out reg16);
 end ip_control;
 
@@ -557,7 +558,7 @@ architecture controle of ip_control is
 	begin
       M0: case sel is
         when true => branch <= jump;
-        when false => branch <= count;
+        when false => branch <= cont;
       end case M0;
       M1: case opcode is
         when x"d" => prox_ip <= jump;
