@@ -174,7 +174,7 @@ begin  -- functional
   U_mux32_2: mux32_2 port map(B,extended,selBeta,Z);
 
   U_ULA: ULA port map(opcode,A,Z,C);
- -- U_ipcontrol: ip_control port map(opcode,ip_at,const,A,B,ip);
+ -- U_ipcontrol: ip_control port map(opcode,ipatual,const,A,B,ip);
 
 
   -- nao altere esta linha
