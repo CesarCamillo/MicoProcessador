@@ -94,12 +94,17 @@ architecture functional of mico is
        z   : out reg6);                  
   end component mux6_2;
 
-  component ip_control is
+  component count16up is                -- em aux
+    port(rel, rst, ld, en: in  bit;
+          D:               in  reg16;
+          Q:               out reg16);
+  end component count16up;
+
+  component ip_control is		-- neste arquivo
       port(opcode : in reg4;
            ipatual : in reg16;
            jump : in reg16;
            alpha, beta : in reg32;
-	clk: in bit;
            prox_ip : out reg16);
   end component ip_control;
   
@@ -160,6 +165,7 @@ begin  -- functional
   selNxtIP   <= this.selNxtIP;
   wr_reg     <= this.wr_reg;
 
+  U_cont_IP: count16up port map(clk, '1', '0', '1', ipatual, ip);
 
   U_extender: extender port map(const,selBeta,extended);
   
@@ -168,7 +174,7 @@ begin  -- functional
   U_mux32_2: mux32_2 port map(B,extended,selBeta,Z);
 
   U_ULA: ULA port map(opcode,A,Z,C);
-  U_ipcontrol: ip_control port map(opcode,ip_at,const,A,B,clk,ip);
+ -- U_ipcontrol: ip_control port map(opcode,ip_at,const,A,B,ip);
 
 
   -- nao altere esta linha
@@ -536,23 +542,15 @@ port(opcode : in reg4;
      ipatual : in reg16;
      jump : in reg16;
      alpha, beta : in reg32;
-     clk : in bit;
      prox_ip : out reg16);
 end ip_control;
 
 architecture controle of ip_control is
   
-  component count16up is                -- em aux
-    port(rel, rst, ld, en: in  bit;
-          D:               in  reg16;
-          Q:               out reg16);
-  end component count16up;
-  
   signal cont, branch : reg16;
   signal sel : boolean;
   
   begin
-    U_cont_IP: count16up port map(clk, '1', '0', '1', ipatual, cont);
    -- sel <= (alpha = beta);
     
     P1: process (opcode) is
