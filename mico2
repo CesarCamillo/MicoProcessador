@@ -77,24 +77,16 @@ architecture functional of mico is
        z   : out reg32);                  
   end component mux32_2;
 
-  component adderCadeia is		-- em aux
-  port(inpA, inpB : in reg32;
-       outC : out reg32;
-       vem  : in bit;
-       vai  : out bit
-       );
-  end component adderCadeia; 
-
-  component extender is			--neste arquivo
-  port(a : in reg16;
-	sel: in bit;
-	b: out reg32);
-  end component extender;
-
   component branch_sel is		-- neste arquivo
     port(alpha, beta, extend, proxi: in reg32;
        branch: out reg32);
   end component branch_sel;
+
+  component extender is
+    port(a : in reg16;
+	sel: in bit;
+ 	b: out reg32);
+  end component extender;
 
   component mux6_2 is
     port(a,b : in  reg6;                   -- neste arquivo
@@ -102,6 +94,14 @@ architecture functional of mico is
        z   : out reg6);                  
   end component mux6_2;
 
+  component ip_control is
+      port(opcode : in reg4;
+           ipatual : in reg6;
+           jump : in reg6;
+           alpha, beta : in reg32;
+           prox_ip : out reg6)
+  end component ip_control;
+  
   type t_control_type is record
     extZero  : bit;       -- estende com zero=1, com sinal=0
     selBeta  : bit;       -- seleciona fonte para entrada B da ULA
@@ -135,9 +135,9 @@ architecture functional of mico is
 
   signal extZero, selBeta, wr_display, selNxtIP, wr_reg : bit;
 
-  signal instr, A, B, C,Z, beta, extended, entradaadder, saidaadder, saidabranch : reg32;
+  signal instr, A, B, C,Z, beta, extended : reg32;
   signal this  : t_control_type;
-  signal const,ip: reg16;
+  signal const, ip, ip_at : reg16;
   signal opcode : reg4;
   signal i_opcode : natural range 0 to 15;
   signal lixo: bit;
@@ -145,7 +145,7 @@ begin  -- functional
 
   -- memoria de programa contem somente 64 palavrassubtype reg6  is bit_vector(4 
   U_mem_prog: mem_prog port map(ip(5 downto 0), instr);
-  
+  ip_at <= ip;
   const<=instr(15 downto 0);
 
   opcode <= instr(31 downto 28);
@@ -159,20 +159,15 @@ begin  -- functional
   selNxtIP   <= this.selNxtIP;
   wr_reg     <= this.wr_reg;
 
-  
-  U_extender_IP: extender port map(ip,'1', entradaadder);
+
   U_extender: extender port map(const,selBeta,extended);
   
   U_regs: R port map(clk,wr_reg,instr(27 downto 24),instr(23 downto 20),instr(19 downto 16),A,B,C);
 
   U_mux32_2: mux32_2 port map(B,extended,selBeta,Z);
-  
-  U_ULA: ULA port map(opcode,A,Z,C);
 
-  U_adder_IP: adderCadeia port map(entradaadder,x"00000001",saidaadder,'0',lixo);
-  U_branch_sel: branch_sel port map(A,B,extended,saidaadder,saidabranch);
-  
-  U_mux6_2: mux6_2 port map(saidaadder(5 downto 0),saidabranch(5 downto 0),selNxtIP,ip(5 downto 0));
+  U_ULA: ULA port map(opcode,A,Z,C);
+  U_ipcontrol: ip_control port map(opcode,ip_at,instr(5 downto 0),A,B,ip);
 
 
   -- nao altere esta linha
@@ -229,8 +224,13 @@ component ori_32 is
 	outp : out reg32);
 end component ori_32;
 
+component mux16vet is
+  port(entr0,entr1,entr2,entr3,entr4,entr5,entr6,entr7,entr8,entr9,entr10,entr11,entr12,entr13,entr14,entr15 : in  reg32;
+       sel  : in  reg4;
+       z    : out reg32);
+end component mux16vet;
 
-   signal terra1, terra2, terra3 : bit;
+  
    signal result1,result2,result3,result4,result5,result6,result7,result8,result9,result10,result11 : reg32;
    signal X, Y : reg32;
    signal controle_shift : reg5;
@@ -241,38 +241,28 @@ begin
 	X <=  alfa;
 	Y <=  beta;
 
-	 Uadd1:		adderCadeia     port map(X,Y,result1,'0',terra1);     --ADD 
-	 Uadd2:		adderCadeia     port map(X,Y,result2,'1',terra2);     --SUB 
-	 Umult1:    	mult_32 	port map(X,Y,result3); 		    --MUL 
-	 Ushif1:	shift_leftN     port map(X,controle_shift,result4);  --SHL 
-	 Ushif2:     	shift_rightN    port map(X,controle_shift,result5);  --SHR 
-	 Uori1:     	ori_32          port map(X,Y,result6);		    --ORI 
-     	 Uadd3:         adderCadeia     port map(X,Y,result7,'0',terra3);	    --ADDI
-	 Uand:     	result8<=(X(31 downto 0) AND Y(31 downto 0));        --AND
-	 Uor:		result9<=(X(31 downto 0) OR Y(31 downto 0)); 	    --OR
-	 Uxor:  	result10<=(X(31 downto 0) XOR Y(31 downto 0));	    --XOR
+	 Uadd1:		adderCadeia     port map(X,Y,result1,'0',open);             --ADD 
+	 Uadd2:		adderCadeia     port map(X,Y,result2,'1',open);             --SUB 
+	 Umult1:    	mult_32 	port map(X,Y,result3); 		            --MUL 
+	 Ushif1:	shift_leftN     port map(X,controle_shift,result4);         --SHL 
+	 Ushif2:     	shift_rightN    port map(X,controle_shift,result5);         --SHR 
+	 Uori1:     	ori_32          port map(X,Y,result6);		            --ORI 
+     	 Uadd3:         adderCadeia     port map(X,Y,result7,'0',open); 	    --ADDI
+	 Uand:     	result8<=(X(31 downto 0) AND Y(31 downto 0));               --AND
+	 Uor:		result9<=(X(31 downto 0) OR Y(31 downto 0)); 	            --OR
+	 Uxor:  	result10<=(X(31 downto 0) XOR Y(31 downto 0));	            --XOR
 	 Unot:		result11<=(not(X(31 downto 0))); 	                    --NOT
 	
-P1: process (fun) is
-begin
 
-M0: case fun is
 
-when "0001" => gama <= result1;
-when "0010" => gama <= result2;
-when "0011" => gama <= result3;  
-when "1000" => gama <= result4;
-when "1001" => gama <= result5;
-when "1010" => gama <= result6;
-when "1011" => gama <= result7;
-when "0100" => gama <= result8;
-when "0101" => gama <= result9;
-when "0110" => gama <= result10;
-when "0111" => gama <= result11;
-when others => null;
 
-end case M0;
-end process;
+        U_mul:    mux16vet port map(x"00000000",result1,result2,result3,result8,result9,result10,result11,result4,result5,result6,result7,x"00000000",x"00000000",x"00000000",x"00000000",fun,gama);
+
+
+
+
+
+
   
 end behaviour;
 -- -----------------------------------------------------------------------
@@ -296,10 +286,23 @@ component registrador32 is
         Q:           out reg32);
 end component registrador32;
 
+component demux16 is
+port(f:in reg32;
+s:in reg4;
+y0,y1,y2,y3,y4,y5,y6,y7,y8,y9,y10,y11,y12,y13,y14,y15:out reg32);
+end component demux16;
+
+component mux16vet is
+  port(entr0,entr1,entr2,entr3,entr4,entr5,entr6,entr7,entr8,entr9,entr10,entr11,entr12,entr13,entr14,entr15 : in  reg32;
+       sel  : in  reg4;
+       z    : out reg32);
+end component mux16vet;
+
+
 --rel=clk
 --rst reset
 --ld load
-signal load1,load2,load3,load4,load5,load6,load7,load8,load9,load10,load11,load12,load13,load14,load15,load16:bit;
+
 signal C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13,C14,C15,C16:reg32;
 signal saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,saidamux8,saidamux9,saidamux10,saidamux11,saidamux12,saidamux13,saidamux14,saidamux15,saidamux16:reg32;
 
@@ -307,141 +310,28 @@ signal saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,sai
 begin
 
 
-Ureg1:  registrador32 port map(clk,'0',load1, C1,saidamux1);
-Ureg2:  registrador32 port map(clk,'1',load2, C2,saidamux2);
-Ureg3:  registrador32 port map(clk,'1',load3, C3,saidamux3);
-Ureg4:  registrador32 port map(clk,'1',load4, C4,saidamux4);
-Ureg5:  registrador32 port map(clk,'1',load5, C5,saidamux5);
-Ureg6:  registrador32 port map(clk,'1',load6, C6,saidamux6);
-Ureg7:  registrador32 port map(clk,'1',load7, C7,saidamux7);
-Ureg8:  registrador32 port map(clk,'1',load8, C8,saidamux8);
-Ureg9:  registrador32 port map(clk,'1',load9, C9,saidamux9);
-Ureg10: registrador32 port map(clk,'1',load10,C10,saidamux10);
-Ureg11: registrador32 port map(clk,'1',load11,C11,saidamux11);
-Ureg12: registrador32 port map(clk,'1',load12,C12,saidamux12);
-Ureg13: registrador32 port map(clk,'1',load13,C13,saidamux13);
-Ureg14: registrador32 port map(clk,'1',load14,C14,saidamux14);
-Ureg15: registrador32 port map(clk,'1',load15,C15,saidamux15);
-Ureg16: registrador32 port map(clk,'1',load16,C16,saidamux16);
+Ureg1:  registrador32 port map(clk,'0','0', C1,saidamux1);
+Ureg2:  registrador32 port map(clk,'1',wr_en, C2,saidamux2);
+Ureg3:  registrador32 port map(clk,'1',wr_en, C3,saidamux3);
+Ureg4:  registrador32 port map(clk,'1',wr_en, C4,saidamux4);
+Ureg5:  registrador32 port map(clk,'1',wr_en, C5,saidamux5);
+Ureg6:  registrador32 port map(clk,'1',wr_en, C6,saidamux6);
+Ureg7:  registrador32 port map(clk,'1',wr_en, C7,saidamux7);
+Ureg8:  registrador32 port map(clk,'1',wr_en, C8,saidamux8);
+Ureg9:  registrador32 port map(clk,'1',wr_en, C9,saidamux9);
+Ureg10: registrador32 port map(clk,'1',wr_en,C10,saidamux10);
+Ureg11: registrador32 port map(clk,'1',wr_en,C11,saidamux11);
+Ureg12: registrador32 port map(clk,'1',wr_en,C12,saidamux12);
+Ureg13: registrador32 port map(clk,'1',wr_en,C13,saidamux13);
+Ureg14: registrador32 port map(clk,'1',wr_en,C14,saidamux14);
+Ureg15: registrador32 port map(clk,'1',wr_en,C15,saidamux15);
+Ureg16: registrador32 port map(clk,'1',wr_en,C16,saidamux16);
 
 
+U_mul1:    mux16vet port map(saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,saidamux8,saidamux9,saidamux10,saidamux11,saidamux12,saidamux13,saidamux14,saidamux15,saidamux16,r_a,A);
+U_mul2:    mux16vet port map(saidamux1,saidamux2,saidamux3,saidamux4,saidamux5,saidamux6,saidamux7,saidamux8,saidamux9,saidamux10,saidamux11,saidamux12,saidamux13,saidamux14,saidamux15,saidamux16,r_b,B);
+Udemux:   demux16 port map(C,r_c,C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13,C14,C15,C16);
 
-P1: process (r_a) is
-begin
-M0: case r_a is
-
-when "0000" => A <= saidamux1;
-when "0001" => A <= saidamux2;
-when "0010" => A <= saidamux3;
-when "0011" => A <= saidamux4;
-when "0100" => A <= saidamux5;
-when "0101" => A <= saidamux6;
-when "0110" => A <= saidamux7;
-when "0111" => A <= saidamux8;
-when "1000" => A <= saidamux9;
-when "1001" => A <= saidamux10;
-when "1010" => A <= saidamux11;
-when "1011" => A <= saidamux12;
-when "1100" => A <= saidamux13;
-when "1101" => A <= saidamux14;
-when "1110" => A <= saidamux15;
-when "1111" => A <= saidamux16;
-
-end case M0;
-end process;
-
-P2: process (r_b) is
-begin
-M1: case r_b is
-
-when "0000" => B <= saidamux1;
-when "0001" => B <= saidamux2;
-when "0010" => B <= saidamux3;
-when "0011" => B <= saidamux4;
-when "0100" => B <= saidamux5;
-when "0101" => B <= saidamux6;
-when "0110" => B <= saidamux7;
-when "0111" => B <= saidamux8;
-when "1000" => B <= saidamux9;
-when "1001" => B <= saidamux10;
-when "1010" => B <= saidamux11;
-when "1011" => B <= saidamux12;
-when "1100" => B <= saidamux13;
-when "1101" => B <= saidamux14;
-when "1110" => B <= saidamux15;
-when "1111" => B <= saidamux16;
-
-end case M1;
-end process;
-
-P3: process (r_c) is
-begin
-M2: case r_c is
-
-when "0000" => null;
-when "0001" => 
-		load2<='1';
-		C2<=C;
-		load2<='0';
-when "0010" =>
-		load3<='1';
-		C3<=C;
-		load3<='0';
-when "0011" =>
-		load4<='1';
-		C4<=C;
-		load4<='0';
-when "0100" => 
-		load5<='1';
-		C5<=C;
-		load5<='0';
-when "0101" => 
-		load6<='1';
-		C6<=C;
-		load6<='0';
-when "0110" => 
-		load7<='1';
-		C7<=C;
-		load7<='0';
-when "0111" => 
-		load8<='1';
-		C8<=C;
-		load8<='0';
-when "1000" => 
-		load9<='1';
-		C9<=C;
-		load9<='0';
-when "1001" => 
-		load10<='1';
-		C10<=C;
-		load10<='0';
-when "1010" =>
-		load11<='1';
-		C11<=C;
-		load11<='0';
-when "1011" => 
-		load12<='1';
-		C12<=C;
-		load12<='0';
-when "1100" => 
-		load13<='1';
-		C13<=C;
-		load13<='0';
-when "1101" => 
-		load14<='1';
-		C14<=C;
-		load14<='0';
-when "1110" => 
-		load15<='1';
-		C15<=C;
-		load15<='0';
-when "1111" => 
-		load16<='1';
-		C16<=C;
-		load16<='0';
-
-end case M2;
-end process;
   
 end rtl;
 -- -----------------------------------------------------------------------
@@ -595,55 +485,82 @@ end behaviour;
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- seleciona branch
+-- demux16
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-library IEEE; use IEEE.std_logic_1164.all; use work.p_wires.all;
 
-entity branch_sel is
- port(alpha, beta, extend, proxi: in reg32;
-       branch: out reg32);
-end branch_sel;
 
-architecture funcional of branch_sel is
 
+library IEEE; use IEEE.STD_LOGIC_1164.ALL;use work.p_wires.all;
+
+entity demux16 is
+port(f:in reg32;
+s:in reg4;
+y0,y1,y2,y3,y4,y5,y6,y7,y8,y9,y10,y11,y12,y13,y14,y15:out reg32);
+end demux16;
+
+architecture behavioral of demux16 is
 begin
+P0: process (s,f) is
+begin
+C0: case s is
 
-branch <= extend when alpha = beta else
-	  proxi;
+when"0000"=>y0<=f;
+when"0001"=>y1<=f;
+when"0010"=>y2<=f;
+when"0011"=>y3<=f;
+when"0100"=>y4<=f;
+when"0101"=>y5<=f;
+when"0110"=>y6<=f;
+when"0111"=>y7<=f;
+when"1000"=>y8<=f;
+when"1001"=>y9<=f;
+when"1010"=>y10<=f;
+when"1011"=>y11<=f;
+when"1100"=>y12<=f;
+when"1101"=>y13<=f;
+when"1110"=>y14<=f;
+when"1111"=>y15<=f;
+end case;
+end process;
+
+
+end behavioral;
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- ip_control
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+entity ip_control is
+port(opcode : in reg4;
+     ipatual : in reg6;
+     jump : in reg6;
+     alpha, beta : in reg32;
+     prox_ip : out reg6) end ip_control;
+
+architecture controle of ip_control is
   
-end;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  component count16up is                -- em aux
+    port(rel, rst, ld, en: in  bit;
+          D:               in  reg16;
+          Q:               out reg16);
+  end component count16up;
+  
+  signal cont, branch : reg6;
+  signal sel : boolean;
+  
+  begin
+    U_cont_IP: count16up port map(clk, '1', '0', '1', ipatual, cont);
+    sel <= (alpha = beta);
+    
+    P1: process (opcode,sel) is
+      M0: case sel is
+        when true => branch <= jump;
+        when false => branch <= count;
+      end case M0;
+      M1: case opcode is
+        when x"d" => prox_ip <= jump;
+        when x"e" => prox_ip <= branch;
+        when x"f" => prox_ip <= ipatual;
+        when others => prox_ip <= cont;
+      end case M1;
+    end process;
