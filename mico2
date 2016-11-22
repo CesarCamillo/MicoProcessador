@@ -143,7 +143,7 @@ architecture functional of mico is
 
   signal instr, A, B, C,Z, beta, extended : reg32;
   signal this  : t_control_type;
-  signal const, ip, ipatual : reg16;
+  signal const, ip, ipatual, contador : reg16;
   signal opcode : reg4;
   signal i_opcode : natural range 0 to 15;
   signal lixo: bit;
@@ -165,8 +165,9 @@ begin  -- functional
   selNxtIP   <= this.selNxtIP;
   wr_reg     <= this.wr_reg;
 
-  U_cont_IP: count16up port map(clk, '1', '0', '1', ipatual, ip);
-
+ -- U_cont_IP: count16up port map(clk, '1', '0', '1', ipatual, ip);
+  U_cont_IP: count16up port map(clk, '1', '0', '1', ipatual, contador);
+  
   U_extender: extender port map(const,selBeta,extended);
   
   U_regs: R port map(clk,wr_reg,instr(27 downto 24),instr(23 downto 20),instr(19 downto 16),A,B,C);
@@ -174,7 +175,7 @@ begin  -- functional
   U_mux32_2: mux32_2 port map(B,extended,selBeta,Z);
 
   U_ULA: ULA port map(opcode,A,Z,C);
- -- U_ipcontrol: ip_control port map(opcode,ipatual,const,A,B,ip);
+  U_ipcontrol: ip_control port map(opcode,ip_at,const,contador,A,B,ip);
 
 
   -- nao altere esta linha
@@ -540,7 +541,7 @@ LIBRARY ieee;USE ieee.std_logic_1164.all;use work.p_wires.all;
 entity ip_control is
 port(opcode : in reg4;
      ipatual : in reg16;
-     jump : in reg16;
+     jump, cont : in reg16;
      alpha, beta : in reg32;
      prox_ip : out reg16);
 end ip_control;
@@ -548,20 +549,24 @@ end ip_control;
 architecture controle of ip_control is
   
   signal cont, branch : reg16;
-  signal sel : boolean;
+  signal sel : bit;
   
   begin
-   -- sel <= (alpha = beta);
-    
+    if (alpha = beta) then
+      sel <= '1';
+    else
+      sel <= '0';
+    end if;
+
     P1: process (opcode) is
 	begin
-    --  M0: case sel is
-      --  when true => branch <= jump;
-       -- when false => branch <= cont;
-      --end case M0;
+      M0: case sel is
+       when '1' => branch <= jump;
+       when '0' => branch <= cont;
+      end case M0;
       M1: case opcode is
         when x"d" => prox_ip <= jump;
-        when x"e" => prox_ip <= jump;
+        when x"e" => prox_ip <= branch;
         when x"f" => prox_ip <= ipatual;
         when others => prox_ip <= cont;
       end case M1;
